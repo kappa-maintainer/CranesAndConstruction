@@ -1,0 +1,20 @@
+[
+  {
+    "modid": "cranesandconstruction",
+    "name": "Cranesandconstruction",
+    "description": "A mod for the ModOff competition that's all about cranes and construction stuff.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "LordSaad"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": [
+      "LibrarianLib"
+    ]
+  }
+]
