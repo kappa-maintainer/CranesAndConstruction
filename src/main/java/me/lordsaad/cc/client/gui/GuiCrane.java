@@ -133,8 +133,7 @@ public class GuiCrane extends GuiBase {
 					GlStateManager.pushMatrix();
 					GlStateManager.disableCull();
 
-					double gridScale = 13.5;
-					Minecraft.getMinecraft().player.sendChatMessage(finalWidth + "");
+					double gridScale = 13.5 * 11 / finalWidth;
 
 					GlStateManager.translate(166, 200 + (149), 500);
 					GlStateManager.rotate(-horizontalAngle, 1, 0, 0);
@@ -156,16 +155,16 @@ public class GuiCrane extends GuiBase {
 
 					GlStateManager.popMatrix();
 
-					GlStateManager.pushMatrix();
-					int tile = 9;
-					int tileHalf = tile / 2;
-					int x = (int) (event.getMousePos().getX() / 16);
-					int y = (int) (event.getMousePos().getY() / 16);
+					if (event.getComponent().getMouseOver()) {
+						GlStateManager.pushMatrix();
+						int x = (int) ((event.getMousePos().getX()) / gridScale);
+						int y = (int) ((event.getMousePos().getY()) / gridScale);
 
-					GlStateManager.translate(x * tile, y * tile, 1000);
-					tileSelector.getTex().bind();
-					tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 19, 200);
-					GlStateManager.popMatrix();
+						GlStateManager.translate(x * gridScale, y * gridScale, 1000);
+						tileSelector.getTex().bind();
+						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 19, 200, (float) gridScale, (float) gridScale);
+						GlStateManager.popMatrix();
+					}
 				}
 		});
 
