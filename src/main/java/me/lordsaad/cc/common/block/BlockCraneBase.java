@@ -1,6 +1,11 @@
 package me.lordsaad.cc.common.block;
 
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
+import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.common.base.block.BlockMod;
+import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
+import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
@@ -10,12 +15,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.HashSet;
 
 /**
@@ -37,16 +45,26 @@ public class BlockCraneBase extends BlockMod {
 				worldIn.setBlockState(pos, ModBlocks.CRANE_BASE.getDefaultState());
 			} else return false;
 		} else {
-			if (PosUtils.isBlockAtCraneBase(worldIn, pos)) {
+			HashSet<BlockPos> blocks = PosUtils.getCraneVerticalPole(worldIn, pos, true, new HashSet<>());
+			if (blocks == null) return false;
 
+			for (BlockPos block : blocks) {
+				ParticleBuilder glitter = new ParticleBuilder(10);
+				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setColor(Color.GREEN);
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setScale(4);
+				ParticleSpawner.spawn(glitter, worldIn, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+				});
 			}
-			//BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
-			//if (seat != null) {
-			//	boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
-			//	if (seated)
-			//		playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
-			//	return seated;
-			//}
+			/*BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
+			if (seat != null) {
+				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
+				if (seated)
+					playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
+				return seated;
+			}*/
 		}
 		return true;
 	}

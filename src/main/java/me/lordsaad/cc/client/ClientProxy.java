@@ -1,19 +1,12 @@
 package me.lordsaad.cc.client;
 
 import me.lordsaad.cc.CCMain;
-import me.lordsaad.cc.client.gui.GuiCrane;
 import me.lordsaad.cc.client.gui.GuiHandler;
 import me.lordsaad.cc.common.CommonProxy;
 import me.lordsaad.cc.init.ModBlocks;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.entity.Entity;
-import net.minecraftforge.client.event.RenderPlayerEvent;
-import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 /**
@@ -27,6 +20,7 @@ public class ClientProxy extends CommonProxy {
 
 		ModBlocks.initModel();
 		NetworkRegistry.INSTANCE.registerGuiHandler(CCMain.instance, new GuiHandler());
+		ClientEventHandler.INSTANCE.getClass();
 
 	}
 
