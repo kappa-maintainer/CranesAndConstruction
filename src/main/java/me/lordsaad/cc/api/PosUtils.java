@@ -1,5 +1,6 @@
 package me.lordsaad.cc.api;
 
+import kotlin.Pair;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -84,7 +85,7 @@ public class PosUtils {
 	}
 
 	@Nullable
-	public static Set<BlockPos> getCraneHorizontalPole(World world, BlockPos pos) {
+	public static Pair<BlockPos, EnumFacing> getHorizontalOriginAndDirection(World world, BlockPos pos) {
 		HashSet<BlockPos> blocks = getCraneVerticalPole(world, pos, true, new HashSet<>());
 		if (blocks == null) return null;
 
@@ -92,16 +93,46 @@ public class PosUtils {
 		for (BlockPos polePos : blocks) {
 			for (EnumFacing side : EnumFacing.HORIZONTALS) {
 				IBlockState state = world.getBlockState(polePos.offset(side));
-				if (state.getBlock() != ModBlocks.CRANE_BASE && state.getBlock() != ModBlocks.CRANE_CORE) continue;
-				else {
+				if (state.getBlock() == ModBlocks.CRANE_BASE || state.getBlock() == ModBlocks.CRANE_CORE) {
 					horizontalCenter = polePos;
 					break;
 				}
 			}
 		}
 
-		// UUUH
-		//for ()
+		if (horizontalCenter == null) return null;
+
+		Pair<BlockPos, EnumFacing> pair = null;
+		for (EnumFacing facing : EnumFacing.HORIZONTALS) {
+			IBlockState state = world.getBlockState(horizontalCenter.offset(facing));
+			if (state.getBlock() == ModBlocks.CRANE_BASE || state.getBlock() == ModBlocks.CRANE_CORE) {
+				if (pair == null)
+					pair = new Pair<>(horizontalCenter, facing);
+				else return null;
+			}
+		}
+		return pair;
+	}
+
+	@Nullable
+	public static HashSet<BlockPos> getCraneHorizontalPole(World world, BlockPos pos, EnumFacing direction, HashSet<BlockPos> blocks) {
+		if (!blocks.contains(pos)) blocks.add(pos);
+
+		BlockPos frontPos = pos.offset(direction);
+		if (blocks.contains(frontPos)) return blocks;
+
+		IBlockState frontState = world.getBlockState(frontPos);
+		if (frontState.getBlock() == ModBlocks.CRANE_BASE || frontState.getBlock() == ModBlocks.CRANE_CORE) {
+			return getCraneHorizontalPole(world, frontPos, direction, blocks);
+		} else return blocks;
+	}
+
+	@Nullable
+	public static HashSet<BlockPos> getCraneHorizontalPole(World world, BlockPos pos) {
+		Pair<BlockPos, EnumFacing> horizontalPoleOriginPair = getHorizontalOriginAndDirection(world, pos);
+		if (horizontalPoleOriginPair == null) return null;
+
+		return getCraneHorizontalPole(world, horizontalPoleOriginPair.getFirst(), horizontalPoleOriginPair.getSecond(), new HashSet<>());
 	}
 
 	public static Set<BlockPos> getCrane(World world, BlockPos pos, Set<BlockPos> blocks) {
