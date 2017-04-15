@@ -161,6 +161,7 @@ public class GuiCrane extends GuiBase {
 						int y = (int) ((event.getMousePos().getY()) / gridScale);
 
 						GlStateManager.translate(x * gridScale, y * gridScale, 1000);
+						GlStateManager.color(1, 1, 1, 0.3f);
 						tileSelector.getTex().bind();
 						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 19, 200, (float) gridScale, (float) gridScale);
 						GlStateManager.popMatrix();

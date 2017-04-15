@@ -1,9 +1,7 @@
 package me.lordsaad.cc.common.block;
 
 import com.teamwizardry.librarianlib.common.base.block.BlockMod;
-import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
-import me.lordsaad.cc.api.SittingUtil;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -39,13 +37,16 @@ public class BlockCraneBase extends BlockMod {
 				worldIn.setBlockState(pos, ModBlocks.CRANE_BASE.getDefaultState());
 			} else return false;
 		} else {
-			BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
-			if (seat != null) {
-				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
-				if (seated)
-					playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
-				return seated;
+			if (PosUtils.isBlockAtCraneBase(worldIn, pos)) {
+
 			}
+			//BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
+			//if (seat != null) {
+			//	boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
+			//	if (seated)
+			//		playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
+			//	return seated;
+			//}
 		}
 		return true;
 	}
