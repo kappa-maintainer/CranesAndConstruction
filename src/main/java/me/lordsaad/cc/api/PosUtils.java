@@ -9,7 +9,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -61,7 +60,7 @@ public class PosUtils {
 	}
 
 	@Nullable
-	public static Set<BlockPos> getCraneVerticalPole(World world, BlockPos pos, boolean checkBase, HashSet<BlockPos> blocks) {
+	public static HashSet<BlockPos> getCraneVerticalPole(World world, BlockPos pos, boolean checkBase, HashSet<BlockPos> blocks) {
 		if (checkBase) {
 			BlockPos craneBase = getBaseOfCrane(world, pos, new HashSet<>());
 			if (craneBase == null) return null;
@@ -76,16 +75,34 @@ public class PosUtils {
 		BlockPos posUp = pos.offset(EnumFacing.UP);
 		IBlockState stateUp = world.getBlockState(posUp);
 
-		if (blocks.contains(posUp)) return blocks; // RECURSION SAFETY CHECK. Should never happen unless something goes really really bad
+		if (blocks.contains(posUp))
+			return blocks; // RECURSION SAFETY CHECK. Should never happen unless something goes really really bad
 
 		if (stateUp.getBlock() != ModBlocks.CRANE_CORE && stateUp.getBlock() != ModBlocks.CRANE_BASE) return blocks;
 
 		return getCraneVerticalPole(world, posUp, false, blocks);
 	}
 
-	//public static boolean doesCraneHaveHorizontalPole(World world, BlockPos pos) {
-//
-	//}
+	@Nullable
+	public static Set<BlockPos> getCraneHorizontalPole(World world, BlockPos pos) {
+		HashSet<BlockPos> blocks = getCraneVerticalPole(world, pos, true, new HashSet<>());
+		if (blocks == null) return null;
+
+		BlockPos horizontalCenter = null;
+		for (BlockPos polePos : blocks) {
+			for (EnumFacing side : EnumFacing.HORIZONTALS) {
+				IBlockState state = world.getBlockState(polePos.offset(side));
+				if (state.getBlock() != ModBlocks.CRANE_BASE && state.getBlock() != ModBlocks.CRANE_CORE) continue;
+				else {
+					horizontalCenter = polePos;
+					break;
+				}
+			}
+		}
+
+		// UUUH
+		//for ()
+	}
 
 	public static Set<BlockPos> getCrane(World world, BlockPos pos, Set<BlockPos> blocks) {
 		if (!blocks.contains(pos)) blocks.add(pos);
