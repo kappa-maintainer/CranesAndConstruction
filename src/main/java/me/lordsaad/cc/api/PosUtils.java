@@ -46,16 +46,11 @@ public class PosUtils {
 
 	@Nullable
 	public static BlockPos getBaseOfCrane(World world, BlockPos pos, Set<BlockPos> blocks) {
-		if (!blocks.contains(pos)) blocks.add(pos);
-		for (EnumFacing facing : EnumFacing.VALUES) {
+		getCrane(world, pos, blocks);
 
-			BlockPos posAdj = pos.offset(facing);
-			if (blocks.contains(posAdj)) continue;
-
-			if (isBlockAtCraneBase(world, posAdj)) return posAdj;
-
-			getCrane(world, posAdj, blocks);
-		}
+		for (BlockPos block : blocks)
+			if (isBlockAtCraneBase(world, block))
+				return block;
 
 		return null;
 	}
@@ -141,6 +136,7 @@ public class PosUtils {
 
 			BlockPos posAdj = pos.offset(facing);
 			IBlockState stateAdj = world.getBlockState(posAdj);
+
 			if (blocks.contains(posAdj)) continue;
 
 			if (stateAdj.getBlock() != ModBlocks.CRANE_CORE && stateAdj.getBlock() != ModBlocks.CRANE_BASE) continue;

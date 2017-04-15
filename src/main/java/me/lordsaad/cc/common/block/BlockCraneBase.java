@@ -45,19 +45,31 @@ public class BlockCraneBase extends BlockMod {
 				worldIn.setBlockState(pos, ModBlocks.CRANE_BASE.getDefaultState());
 			} else return false;
 		} else {
-			HashSet<BlockPos> blocks = PosUtils.getCraneVerticalPole(worldIn, pos, true, new HashSet<>());
-			if (blocks == null) return false;
+			HashSet<BlockPos> vertical = PosUtils.getCraneVerticalPole(worldIn, pos, true, new HashSet<>());
+			HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(worldIn, pos);
 
-			for (BlockPos block : blocks) {
-				ParticleBuilder glitter = new ParticleBuilder(10);
-				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(Color.GREEN);
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setScale(4);
-				ParticleSpawner.spawn(glitter, worldIn, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-				});
-			}
+			if (vertical != null)
+				for (BlockPos block : vertical) {
+					ParticleBuilder glitter = new ParticleBuilder(10);
+					glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+					glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+					glitter.setColor(Color.GREEN);
+					glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+					glitter.setScale(2);
+					ParticleSpawner.spawn(glitter, worldIn, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+					});
+				}
+			if (horizontal != null)
+				for (BlockPos block : horizontal) {
+					ParticleBuilder glitter = new ParticleBuilder(10);
+					glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+					glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+					glitter.setColor(Color.RED);
+					glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+					glitter.setScale(2);
+					ParticleSpawner.spawn(glitter, worldIn, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+					});
+				}
 			/*BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
 			if (seat != null) {
 				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
