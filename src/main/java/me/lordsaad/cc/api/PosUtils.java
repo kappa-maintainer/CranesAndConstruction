@@ -2,7 +2,6 @@ package me.lordsaad.cc.api;
 
 import kotlin.Pair;
 import me.lordsaad.cc.init.ModBlocks;
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
@@ -18,14 +17,13 @@ import java.util.Set;
  */
 public class PosUtils {
 
-	public static BlockPos getHighestConnectedBlock(World world, BlockPos pos, Block block) {
-		BlockPos up = pos.up();
-		BlockPos highest = pos;
-		while (!world.isAirBlock(up)) {
-			if (world.getBlockState(up).getBlock() == block) highest = up;
-			up = up.up();
+	@Nullable
+	public static BlockPos getHighestCranePoint(HashSet<BlockPos> blocks) {
+		if (blocks == null) return null;
+		BlockPos highest = BlockPos.ORIGIN;
+		for (BlockPos block : blocks) {
+			if (block.getY() > highest.getY()) highest = block;
 		}
-
 		return highest;
 	}
 
