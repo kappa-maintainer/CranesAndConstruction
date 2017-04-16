@@ -157,13 +157,4 @@ public class PosUtils {
 		}
 		return null;
 	}
-
-	public static void placeUpwardShiftedBlocks(World world, Set<BlockPos> blocks) {
-		for (BlockPos pos : blocks) {
-			IBlockState originalState = world.getBlockState(pos);
-			world.setBlockState(pos.up(), originalState, 3);
-			if (!blocks.contains(pos.down()))
-				world.setBlockToAir(pos);
-		}
-	}
 }
