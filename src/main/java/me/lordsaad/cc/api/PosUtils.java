@@ -6,6 +6,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
@@ -16,6 +18,16 @@ import java.util.Set;
  * Created by LordSaad.
  */
 public class PosUtils {
+
+	public static Vec3d vecFromRotations(float rotationPitch, float rotationYaw) {
+		return Vec3d.fromPitchYaw(rotationPitch, rotationYaw);
+	}
+
+	public static float[] vecToRotations(Vec3d vec) {
+		float yaw = (float) MathHelper.atan2(vec.zCoord, vec.xCoord);
+		float pitch = (float) Math.asin(vec.yCoord / vec.lengthVector());
+		return new float[]{(float) Math.toDegrees(pitch), (float) Math.toDegrees(yaw) + 90};
+	}
 
 	@Nullable
 	public static BlockPos getHighestCranePoint(HashSet<BlockPos> blocks) {

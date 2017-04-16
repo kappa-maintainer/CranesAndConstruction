@@ -9,9 +9,12 @@ import com.teamwizardry.librarianlib.client.gui.components.ComponentVoid;
 import com.teamwizardry.librarianlib.client.gui.mixin.ButtonMixin;
 import com.teamwizardry.librarianlib.client.sprite.Sprite;
 import com.teamwizardry.librarianlib.client.sprite.Texture;
+import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import com.teamwizardry.librarianlib.common.util.math.Vec2d;
+import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
+import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -21,6 +24,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.VertexBuffer;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import org.lwjgl.opengl.GL11;
@@ -165,10 +169,13 @@ public class GuiCrane extends GuiBase {
 		});
 
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
+			if (!event.getComponent().getMouseOver()) return;
 			Vec2d pos1 = event.getMousePos();
-			int x = pos1.getXi() / 16;
-			int y = pos1.getYi() / 16;
-			//if (x < grid.length && y < grid.length && x > 0 && y > 0)
+			int x = event.getMousePos().getXi() / tileSize;
+			int y = event.getMousePos().getYi() / tileSize;
+
+			if (x < grid.length && y < grid.length && x > 0 && y > 0) ;
+
 			//	if (event.getButton() == EnumMouseButton.LEFT)
 			//		grid[x][y] = TileType.PLACED;
 			//	else if (event.getButton() == EnumMouseButton.RIGHT)
@@ -178,10 +185,12 @@ public class GuiCrane extends GuiBase {
 		});
 
 		topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
+			if (!event.getComponent().getMouseOver()) return;
 			Vec2d pos1 = event.getMousePos();
-			int x = pos1.getXi() / 16;
-			int y = pos1.getYi() / 16;
-			if (x < grid.length && y < grid.length && x > 0 && y > 0) ;
+			int x = event.getMousePos().getXi() / tileSize;
+			int y = event.getMousePos().getYi() / tileSize;
+			PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(Blocks.BEDROCK.getDefaultState(), pos.add(x, 30, y))));
+
 			//if (selectedMode == Mode.DIRECT) {
 			//	if (grid[x][y] == TileType.EMPTY)
 			//		grid[x][y] = TileType.PLACED;

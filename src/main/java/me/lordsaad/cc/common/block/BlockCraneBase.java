@@ -67,6 +67,9 @@ public class BlockCraneBase extends BlockMod {
 			}
 
 		} else {
+			BlockPos core = PosUtils.findCraneSeat(worldIn, pos);
+			if (core == null) return false;
+
 			BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
 			if (seat != null) {
 				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
@@ -109,7 +112,7 @@ public class BlockCraneBase extends BlockMod {
 			if (structure.isEmpty()) return super.removedByPlayer(state, world, pos, player, willHarvest);
 
 			for (Pair<IBlockState, BlockPos> pair : structure) {
-				world.setBlockState(pair.getSecond().down(), pair.getFirst());
+				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
 			return false;
 		}

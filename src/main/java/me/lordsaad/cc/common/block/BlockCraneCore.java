@@ -139,7 +139,7 @@ public class BlockCraneCore extends BlockModContainer {
 			if (structure.isEmpty()) return super.removedByPlayer(state, world, pos, player, willHarvest);
 
 			for (Pair<IBlockState, BlockPos> pair : structure) {
-				world.setBlockState(pair.getSecond().down(), pair.getFirst());
+				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
 			return false;
 		}
