@@ -2,6 +2,7 @@ package me.lordsaad.cc.common.tile;
 
 import com.teamwizardry.librarianlib.common.base.block.TileMod;
 import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister;
+import com.teamwizardry.librarianlib.common.util.math.Vec2d;
 import com.teamwizardry.librarianlib.common.util.saving.Save;
 import com.teamwizardry.librarianlib.common.util.saving.SaveMethodGetter;
 import com.teamwizardry.librarianlib.common.util.saving.SaveMethodSetter;
@@ -113,10 +114,9 @@ public class TileCraneCore extends TileMod implements ITickable {
 				currentYaw = destYaw;
 				transitionArm = false;
 
-				if (queue.isEmpty()) {
-					EnumFacing facing = EnumFacing.fromAngle(destYaw);
+				if (queue.isEmpty() && originalDirection != null) {
 					for (int i = 1; i < armLength; i++) {
-						BlockPos armPos = originalArmPos.offset(facing, i);
+						BlockPos armPos = originalArmPos.offset(originalDirection, i);
 						world.setBlockState(armPos, ModBlocks.CRANE_BASE.getDefaultState(), 3);
 					}
 				}
@@ -138,14 +138,19 @@ public class TileCraneCore extends TileMod implements ITickable {
 			if (pair != null) {
 				originalArmPos = pair.getFirst();
 				originalDirection = pair.getSecond();
+
+				Vec3d tempSubOrigin = new Vec3d(pos.offset(pair.getSecond())).addVector(0.5, 0.5, 0.5);
+				Vec3d tempSubTo = new Vec3d(nextPair.getSecond()).addVector(0.5, 0.5, 0.5);
+				Vec2d origin = new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5).sub(tempSubOrigin.xCoord, tempSubOrigin.zCoord).normalize();
+				Vec2d to = new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5).sub(tempSubTo.xCoord, tempSubTo.zCoord).normalize();
+				double dot = origin.dot(to);
+				double det = (origin.getX() * to.getY()) - (origin.getY() * to.getX());
+
+				double angle = 360 - Math.toDegrees(Math.atan2(det, dot));//Math.toDegrees(Math.acos(origin.dotProduct(to) / (origin.lengthVector() * to.lengthVector())));
+				//if (Double.isNaN(angle)) angle = 0;
+				destYaw = (float) angle;
+				Minecraft.getMinecraft().player.sendChatMessage(angle + "");
 			}
-
-			Vec3d origin = new Vec3d(pos).addVector(0.5, 0.5, 0.5);
-			Vec3d to = new Vec3d(nextPair.getSecond()).addVector(0.5, 0.5, 0.5);
-
-			float[] angles = PosUtils.vecToRotations(to.subtract(origin));
-			destYaw = angles[1];
-			Minecraft.getMinecraft().player.sendChatMessage(destYaw + " - " + prevYaw);
 			prevYaw = currentYaw;
 
 			if (arm != null)

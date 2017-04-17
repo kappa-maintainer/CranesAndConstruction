@@ -8,7 +8,6 @@ import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
-import me.lordsaad.cc.api.SittingUtil;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -67,15 +66,12 @@ public class BlockCraneBase extends BlockMod {
 			}
 
 		} else {
-			BlockPos core = PosUtils.findCraneSeat(worldIn, pos);
-			if (core == null) return false;
-
 			BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
 			if (seat != null) {
-				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
-				if (seated)
+				//	boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
+				//	if (seated)
 					playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
-				return seated;
+				//	return seated;
 			}
 		}
 		return false;

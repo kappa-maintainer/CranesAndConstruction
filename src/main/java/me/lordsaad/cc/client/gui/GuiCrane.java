@@ -2,6 +2,9 @@ package me.lordsaad.cc.client.gui;
 
 import com.google.common.collect.HashMultimap;
 import com.teamwizardry.librarianlib.client.core.ClientTickHandler;
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
+import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.client.gui.GuiBase;
 import com.teamwizardry.librarianlib.client.gui.GuiComponent;
 import com.teamwizardry.librarianlib.client.gui.components.ComponentSprite;
@@ -11,6 +14,7 @@ import com.teamwizardry.librarianlib.client.sprite.Sprite;
 import com.teamwizardry.librarianlib.client.sprite.Texture;
 import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import com.teamwizardry.librarianlib.common.util.math.Vec2d;
+import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
@@ -27,8 +31,11 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
 import java.util.HashSet;
 
 /**
@@ -158,7 +165,7 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.pushMatrix();
 			GlStateManager.enableAlpha();
 			GlStateManager.enableBlend();
-			GlStateManager.translate(16, 199, 500);
+			GlStateManager.translate(22, 205, 500);
 			tileSelector.getTex().bind();
 			tileSelector.draw((int) ClientTickHandler.getPartialTicks(), gridX * tileSize, gridY * tileSize, tileSize, tileSize);
 			GlStateManager.popMatrix();
@@ -189,7 +196,19 @@ public class GuiCrane extends GuiBase {
 			Vec2d pos1 = event.getMousePos();
 			int x = event.getMousePos().getXi() / tileSize;
 			int y = event.getMousePos().getYi() / tileSize;
-			PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(Blocks.BEDROCK.getDefaultState(), pos.add(x, 30, y))));
+			BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
+
+			ParticleBuilder glitter = new ParticleBuilder(40);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.GREEN);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(2);
+			ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+			});
+
+			//mc.player.setPosition(block.getX(), block.getY(), block.getZ());
+			PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(Blocks.BEDROCK.getDefaultState(), block)));
 
 			//if (selectedMode == Mode.DIRECT) {
 			//	if (grid[x][y] == TileType.EMPTY)
