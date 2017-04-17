@@ -35,25 +35,41 @@ import java.util.HashSet;
 public class TileCraneCore extends TileMod implements ITickable {
 
 	public HashSet<Pair<IBlockState, BlockPos>> queue = new HashSet<>();
+
 	@Save
 	public float prevYaw = 0;
+
 	@Save
 	public float currentYaw = 0;
+
 	@Save
 	public float destYaw = 0;
+
 	@Nullable
 	@Save
 	public EnumFacing originalDirection;
+
 	@Save
 	public BlockPos originalArmPos;
+
 	@Save
 	public boolean transitionArm = false, transitionArmToOrigin;
+
 	@Save
 	public int armLength = 0;
+
 	@Nullable
 	public Pair<IBlockState, BlockPos> nextPair = null;
+
 	@Save
 	public long worldTime;
+
+	// Handle
+	@Save
+	public BlockPos handleFrom;
+
+	@Save
+	public BlockPos handleTo;
 
 	@SaveMethodGetter(saveName = "nextPair")
 	public NBTTagCompound nextPairGetter() {
@@ -156,14 +172,14 @@ public class TileCraneCore extends TileMod implements ITickable {
 			queue.remove(nextPair);
 
 			HashSet<BlockPos> arm = PosUtils.getCraneHorizontalPole(world, pos);
-			Pair<BlockPos, EnumFacing> pair = PosUtils.getHorizontalOriginAndDirection(world, pos);
+			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
 
 			if (arm != null) armLength = arm.size();
-			if (pair != null) {
-				originalArmPos = pair.getFirst();
-				originalDirection = pair.getSecond();
+			if (defaultPair != null) {
+				originalArmPos = defaultPair.getFirst();
+				originalDirection = defaultPair.getSecond();
 
-				Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(pair.getSecond())));
+				Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(defaultPair.getSecond())));
 				Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
 				Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
 				Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
@@ -176,6 +192,10 @@ public class TileCraneCore extends TileMod implements ITickable {
 				destYaw = (float) angle;
 
 				prevYaw = currentYaw = 0;
+
+				BlockPos tempFrom = pos.offset(defaultPair.getSecond());
+				handleFrom = BlockPos.ORIGIN;
+				handleTo = pos.subtract(new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ()));
 			}
 
 			if (arm != null)
