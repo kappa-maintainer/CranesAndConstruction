@@ -10,7 +10,6 @@ import kotlin.Pair;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
@@ -114,6 +113,31 @@ public class TileCraneCore extends TileMod implements ITickable {
 				currentYaw = destYaw;
 				transitionArm = false;
 
+				if (originalDirection != null) {
+					prevYaw = currentYaw;
+					destYaw = 0;
+					transitionArmToOrigin = true;
+					worldTime = world.getTotalWorldTime();
+				}
+			}
+			markDirty();
+
+		} else if (transitionArmToOrigin) {
+			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 35));
+			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
+
+			float yaw;
+			if (worldTimeTransition < transitionTimeMax) {
+				if (Math.round(destYaw) > Math.round(prevYaw))
+					yaw = -((destYaw - prevYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
+				else
+					yaw = ((prevYaw - destYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
+				currentYaw = yaw;
+			} else {
+				prevYaw = currentYaw = destYaw = 0;
+				worldTime = world.getTotalWorldTime();
+				transitionArmToOrigin = false;
+
 				if (queue.isEmpty() && originalDirection != null) {
 					for (int i = 1; i < armLength; i++) {
 						BlockPos armPos = originalArmPos.offset(originalDirection, i);
@@ -139,19 +163,20 @@ public class TileCraneCore extends TileMod implements ITickable {
 				originalArmPos = pair.getFirst();
 				originalDirection = pair.getSecond();
 
-				Vec3d tempSubOrigin = new Vec3d(pos.offset(pair.getSecond())).addVector(0.5, 0.5, 0.5);
-				Vec3d tempSubTo = new Vec3d(nextPair.getSecond()).addVector(0.5, 0.5, 0.5);
-				Vec2d origin = new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5).sub(tempSubOrigin.xCoord, tempSubOrigin.zCoord).normalize();
-				Vec2d to = new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5).sub(tempSubTo.xCoord, tempSubTo.zCoord).normalize();
-				double dot = origin.dot(to);
-				double det = (origin.getX() * to.getY()) - (origin.getY() * to.getX());
+				Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(pair.getSecond())));
+				Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
+				Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
+				Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
 
-				double angle = 360 - Math.toDegrees(Math.atan2(det, dot));//Math.toDegrees(Math.acos(origin.dotProduct(to) / (origin.lengthVector() * to.lengthVector())));
-				//if (Double.isNaN(angle)) angle = 0;
+				double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
+				double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
+
+				double angle = Math.toDegrees(angle1 - angle2);
+
 				destYaw = (float) angle;
-				Minecraft.getMinecraft().player.sendChatMessage(angle + "");
+
+				prevYaw = currentYaw = 0;
 			}
-			prevYaw = currentYaw;
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {

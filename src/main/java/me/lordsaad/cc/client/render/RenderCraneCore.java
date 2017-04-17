@@ -39,13 +39,13 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 		double transitionTimeMax = Math.max(10, Math.min(Math.abs((te.prevYaw - te.destYaw) / 2.0), 35));
 		float yaw = te.currentYaw;
 
-		if (true) {
+		if (te.transitionArmToOrigin || te.transitionArm) {
 			GlStateManager.pushMatrix();
 			GlStateManager.enableAlpha();
 			GlStateManager.enableBlend();
 			GlStateManager.enableLighting();
 
-			GlStateManager.translate(x, y, z);
+			GlStateManager.translate(x + 0.5, y, z + 0.5);
 
 			if (subtractedMillis < transitionTimeMax) {
 				if (Math.round(te.destYaw) > Math.round(te.prevYaw))
@@ -58,8 +58,8 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 
 			if (te.originalDirection == null) return;
 
-			GlStateManager.translate(0.5, 0, 0.5);
-			for (int i = 0; i < te.armLength; i++) {
+			GlStateManager.translate(-0.5, 0, -0.5);
+			for (int i = 1; i < te.armLength; i++) {
 				BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection, i);
 				GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
 				Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneBase, 1.0F, 1, 1, 1);
