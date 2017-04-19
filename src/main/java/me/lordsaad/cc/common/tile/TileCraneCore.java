@@ -10,6 +10,7 @@ import kotlin.Pair;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
@@ -128,6 +129,11 @@ public class TileCraneCore extends TileMod implements ITickable {
 			} else {
 				currentYaw = destYaw;
 				transitionArm = false;
+
+				if (nextPair != null && !world.isRemote) {
+					EntityFallingBlock block = new EntityFallingBlock(world, nextPair.getSecond().getX(), nextPair.getSecond().getY(), nextPair.getSecond().getZ(), nextPair.getFirst());
+					world.spawnEntity(block);
+				}
 
 				if (originalDirection != null) {
 					prevYaw = currentYaw;

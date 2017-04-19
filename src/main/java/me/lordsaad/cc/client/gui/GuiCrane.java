@@ -7,13 +7,14 @@ import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.client.gui.GuiBase;
 import com.teamwizardry.librarianlib.client.gui.GuiComponent;
+import com.teamwizardry.librarianlib.client.gui.components.ComponentList;
 import com.teamwizardry.librarianlib.client.gui.components.ComponentSprite;
+import com.teamwizardry.librarianlib.client.gui.components.ComponentStack;
 import com.teamwizardry.librarianlib.client.gui.components.ComponentVoid;
 import com.teamwizardry.librarianlib.client.gui.mixin.ButtonMixin;
 import com.teamwizardry.librarianlib.client.sprite.Sprite;
 import com.teamwizardry.librarianlib.client.sprite.Texture;
 import com.teamwizardry.librarianlib.common.network.PacketHandler;
-import com.teamwizardry.librarianlib.common.util.math.Vec2d;
 import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
@@ -28,7 +29,8 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.VertexBuffer;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -36,6 +38,8 @@ import net.minecraft.util.math.Vec3i;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 
 /**
@@ -50,6 +54,7 @@ public class GuiCrane extends GuiBase {
 	private double tick = 0;
 	private IBlockState[][] grid;
 	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
+	private ComponentStack selected;
 
 	public GuiCrane(BlockPos pos) {
 		super(330, 512);
@@ -136,6 +141,7 @@ public class GuiCrane extends GuiBase {
 
 					GlStateManager.pushMatrix();
 					GlStateManager.disableCull();
+					GlStateManager.disableLighting();
 
 					GlStateManager.translate(166, 349, 300);
 					GlStateManager.rotate(-90, 1, 0, 0);
@@ -149,12 +155,13 @@ public class GuiCrane extends GuiBase {
 					BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
 					mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+					buffer.begin(7, DefaultVertexFormats.BLOCK);
 
-					dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
+					dispatcher.getBlockModelRenderer().renderModel(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
 
 					tes.draw();
 
+					GlStateManager.enableLighting();
 					GlStateManager.popMatrix();
 				}
 
@@ -177,23 +184,6 @@ public class GuiCrane extends GuiBase {
 
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
-			Vec2d pos1 = event.getMousePos();
-			int x = event.getMousePos().getXi() / tileSize;
-			int y = event.getMousePos().getYi() / tileSize;
-
-			if (x < grid.length && y < grid.length && x > 0 && y > 0) ;
-
-			//	if (event.getButton() == EnumMouseButton.LEFT)
-			//		grid[x][y] = TileType.PLACED;
-			//	else if (event.getButton() == EnumMouseButton.RIGHT)
-			//		grid[x][y] = TileType.EMPTY;
-			//PacketHandler.NETWORK.sendToServer(new PacketBuilderGridSaver(location, grid));
-
-		});
-
-		topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
-			if (!event.getComponent().getMouseOver()) return;
-			Vec2d pos1 = event.getMousePos();
 			int x = event.getMousePos().getXi() / tileSize;
 			int y = event.getMousePos().getYi() / tileSize;
 			BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
@@ -207,37 +197,73 @@ public class GuiCrane extends GuiBase {
 			ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
 			});
 
-			//mc.player.setPosition(block.getX(), block.getY(), block.getZ());
-			PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(Blocks.BEDROCK.getDefaultState(), block)));
-
-			//if (selectedMode == Mode.DIRECT) {
-			//	if (grid[x][y] == TileType.EMPTY)
-			//		grid[x][y] = TileType.PLACED;
-			//	else grid[x][y] = TileType.EMPTY;
-			//	PacketHandler.NETWORK.sendToServer(new PacketBuilderGridSaver(location, grid));
-			//} else if (selectedMode == Mode.SELECT) {
-			//	if (grid[x][y] == TileType.EMPTY)
-			//		if (event.getButton() == EnumMouseButton.LEFT) {
-			//			Vec2d left = getTile(TileType.LEFT_SELECTED);
-			//			if (left != null) grid[left.getXi()][left.getYi()] = TileType.EMPTY;
-			//			grid[x][y] = TileType.LEFT_SELECTED;
-			//			PacketHandler.NETWORK.sendToServer(new PacketBuilderGridSaver(location, grid));
-			//		} else {
-			//			Vec2d left = getTile(TileType.RIGHT_SELECTED);
-			//			if (left != null) grid[left.getXi()][left.getYi()] = TileType.EMPTY;
-			//			grid[x][y] = TileType.RIGHT_SELECTED;
-			//			PacketHandler.NETWORK.sendToServer(new PacketBuilderGridSaver(location, grid));
-			//		}
-			//	else {
-			//		grid[x][y] = TileType.EMPTY;
-			//		PacketHandler.NETWORK.sendToServer(new PacketBuilderGridSaver(location, grid));
-			//	}
-			//}
+			if (selected != null) {
+				ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
+				PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+			}
 		});
 
+		topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
+			if (!event.getComponent().getMouseOver()) return;
+			int x = event.getMousePos().getXi() / tileSize;
+			int y = event.getMousePos().getYi() / tileSize;
+			BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
 
-		compBackground.add(sideView);
-		compBackground.add(topView);
+			ParticleBuilder glitter = new ParticleBuilder(40);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.GREEN);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(2);
+			ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+			});
+
+			if (selected != null) {
+				ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
+				PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+			}
+		});
+
+		Deque<ItemStack> itemBlocks = new ArrayDeque<>();
+		for (ItemStack stack : mc.player.inventory.mainInventory)
+			if (stack.getItem() instanceof ItemBlock)
+				itemBlocks.add(stack);
+
+		final int size = itemBlocks.size();
+		for (int i = 0; i < Math.ceil(size / 9.0); i++) {
+			ComponentList inventory = new ComponentList(-48 - (i * 32), 40);
+			inventory.setChildScale(2);
+
+			for (int j = 0; j < 9; j++) {
+				if (itemBlocks.isEmpty()) break;
+				ItemStack stack = itemBlocks.pop();
+				ComponentStack compStack = new ComponentStack(0, 0);
+				compStack.getStack().setValue(stack);
+
+				compStack.BUS.hook(GuiComponent.MouseClickEvent.class, (event) -> {
+					selected = compStack;
+				});
+
+				int finalI = i;
+				int finalJ = j;
+				compStack.BUS.hook(GuiComponent.PreDrawEvent.class, (event) -> {
+					if (selected == compStack) {
+						GlStateManager.pushMatrix();
+						GlStateManager.enableAlpha();
+						GlStateManager.enableBlend();
+
+						tileSelector.getTex().bind();
+						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), -finalI * 16, finalJ * 16, 16, 16);
+
+						GlStateManager.popMatrix();
+					}
+				});
+				inventory.add(compStack);
+			}
+			getMainComponents().add(inventory);
+		}
+
+		compBackground.add(sideView, topView);
 	}
 
 	@Override
