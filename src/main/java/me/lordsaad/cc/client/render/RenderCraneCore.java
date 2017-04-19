@@ -55,7 +55,16 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 		double transitionTimeMax = Math.max(10, Math.min(Math.abs((te.prevYaw - te.destYaw) / 2.0), 35));
 		float yaw;
 
-		if (te.transitionArmToOrigin || te.transitionArm) {
+		if (subtractedMillis < transitionTimeMax) {
+			if (Math.round(te.destYaw) > Math.round(te.prevYaw))
+				yaw = -((te.destYaw - te.prevYaw) / 2) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.destYaw + te.prevYaw) / 2;
+			else
+				yaw = ((te.prevYaw - te.destYaw) / 2) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.destYaw + te.prevYaw) / 2;
+		} else yaw = te.destYaw;
+
+		if (te.originalDirection == null) return;
+
+		if (te.transitionArmToOrigin || te.transitionArm || !te.queue.isEmpty()) {
 			GlStateManager.pushMatrix();
 			GlStateManager.enableAlpha();
 			GlStateManager.enableBlend();
@@ -63,26 +72,20 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 
 			GlStateManager.translate(x + 0.5, y, z + 0.5);
 
-			if (subtractedMillis < transitionTimeMax) {
-				if (Math.round(te.destYaw) > Math.round(te.prevYaw))
-					yaw = -((te.destYaw - te.prevYaw) / 2) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.destYaw + te.prevYaw) / 2;
-				else
-					yaw = ((te.prevYaw - te.destYaw) / 2) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.destYaw + te.prevYaw) / 2;
-			} else yaw = te.destYaw;
-
 			GlStateManager.rotate(yaw, 0, 1, 0);
 
-			if (te.originalDirection != null) {
 
-				GlStateManager.translate(-0.5, 0, -0.5);
-				for (int i = 1; i < te.armLength; i++) {
-					BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection, i);
-					GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
-					Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneBase, 1.0F, 1, 1, 1);
-					GlStateManager.translate(-posOffset.getX(), 0, -posOffset.getZ());
-				}
+			GlStateManager.translate(-0.5, 0, -0.5);
+			for (int i = 1; i < te.armLength; i++) {
+				BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection, i);
+				GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
+				Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneBase, 1.0F, 1, 1, 1);
+				GlStateManager.translate(-posOffset.getX(), 0, -posOffset.getZ());
 			}
 			GlStateManager.popMatrix();
+
+		}
+		if (te.transitionArm) {
 
 			///////////////////////////
 			//         SAND          //

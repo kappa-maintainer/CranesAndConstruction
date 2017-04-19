@@ -50,6 +50,7 @@ public class PacketSendBlockToCrane extends PacketBase {
 		TileCraneCore tile = (TileCraneCore) world.getTileEntity(pos);
 
 		if (tile == null) return;
+		if (world.isRemote) return;
 
 		tile.queue.add(pair);
 		tile.markDirty();

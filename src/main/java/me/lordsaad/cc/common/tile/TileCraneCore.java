@@ -27,6 +27,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 
 /**
@@ -35,7 +37,7 @@ import java.util.HashSet;
 @TileRegister("crane_core")
 public class TileCraneCore extends TileMod implements ITickable {
 
-	public HashSet<Pair<IBlockState, BlockPos>> queue = new HashSet<>();
+	public Deque<Pair<IBlockState, BlockPos>> queue = new ArrayDeque<>();
 
 	@Save
 	public float prevYaw = 0;
@@ -95,7 +97,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 		for (Pair<IBlockState, BlockPos> pair : queue) {
 			NBTTagCompound compound = new NBTTagCompound();
 			NBTUtil.writeBlockState(compound, pair.getFirst());
-			compound.setTag("block_pos", NBTUtil.createPosTag(pos));
+			compound.setTag("block_pos", NBTUtil.createPosTag(pair.getSecond()));
 			list.appendTag(compound);
 		}
 		nbt.setTag("list", list);
@@ -104,6 +106,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	@SaveMethodSetter(saveName = "queue")
 	public void queueSetter(NBTTagCompound nbt) {
+		queue.clear();
 		NBTTagList list = nbt.getTagList("list", Constants.NBT.TAG_COMPOUND);
 		for (int q = 0; q < list.tagCount(); q++) {
 			NBTTagCompound compound = list.getCompoundTagAt(q);
@@ -131,7 +134,8 @@ public class TileCraneCore extends TileMod implements ITickable {
 				transitionArm = false;
 
 				if (nextPair != null && !world.isRemote) {
-					EntityFallingBlock block = new EntityFallingBlock(world, nextPair.getSecond().getX(), nextPair.getSecond().getY(), nextPair.getSecond().getZ(), nextPair.getFirst());
+					EntityFallingBlock block = new EntityFallingBlock(world, nextPair.getSecond().getX() + 0.5, nextPair.getSecond().getY(), nextPair.getSecond().getZ() + 0.5, nextPair.getFirst());
+					block.fallTime = 2;
 					world.spawnEntity(block);
 				}
 
@@ -159,6 +163,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 				prevYaw = currentYaw = destYaw = 0;
 				worldTime = world.getTotalWorldTime();
 				transitionArmToOrigin = false;
+				nextPair = null;
 
 				if (queue.isEmpty() && originalDirection != null) {
 					for (int i = 1; i < armLength; i++) {
@@ -169,13 +174,9 @@ public class TileCraneCore extends TileMod implements ITickable {
 			}
 			markDirty();
 		} else if (!queue.isEmpty()) {
-			nextPair = queue.iterator().next();
-			worldTime = world.getTotalWorldTime();
-			transitionArm = true;
+			nextPair = queue.pop();
 
 			if (nextPair == null) return;
-
-			queue.remove(nextPair);
 
 			HashSet<BlockPos> arm = PosUtils.getCraneHorizontalPole(world, pos);
 			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
@@ -195,11 +196,10 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 				double angle = Math.toDegrees(angle1 - angle2);
 
+				prevYaw = currentYaw = destYaw;
+
 				destYaw = (float) angle;
 
-				prevYaw = currentYaw = 0;
-
-				BlockPos tempFrom = pos.offset(defaultPair.getSecond());
 				handleFrom = BlockPos.ORIGIN;
 				handleTo = pos.subtract(new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ()));
 			}
@@ -209,6 +209,9 @@ public class TileCraneCore extends TileMod implements ITickable {
 					if (blocks.toLong() == pos.toLong()) continue;
 					world.setBlockToAir(blocks);
 				}
+
+			transitionArm = true;
+			worldTime = world.getTotalWorldTime();
 
 			markDirty();
 		}
