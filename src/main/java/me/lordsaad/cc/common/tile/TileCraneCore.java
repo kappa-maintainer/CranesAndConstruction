@@ -3,15 +3,10 @@ package me.lordsaad.cc.common.tile;
 import com.teamwizardry.librarianlib.features.autoregister.TileRegister;
 import com.teamwizardry.librarianlib.features.base.block.TileMod;
 import com.teamwizardry.librarianlib.features.math.Vec2d;
-import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
-import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
-import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodGetter;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodSetter;
 import kotlin.Pair;
-import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
@@ -22,7 +17,6 @@ import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -33,7 +27,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -83,6 +76,21 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	@Nullable
 	public Pair<BlockPos, EnumFacing> lastKnownDefaultPair = null;
+
+	public IBlockState craneArmSample;
+
+	@SaveMethodGetter(saveName = "craneArmSample")
+	public NBTTagCompound craneArmSampleGetter() {
+		NBTTagCompound nbt = new NBTTagCompound();
+		if (craneArmSample == null) return nbt;
+		NBTUtil.writeBlockState(nbt, craneArmSample);
+		return nbt;
+	}
+
+	@SaveMethodSetter(saveName = "craneArmSample")
+	public void craneArmSampleSetter(NBTTagCompound nbt) {
+		craneArmSample = NBTUtil.readBlockState(nbt);
+	}
 
 	@SaveMethodGetter(saveName = "lastKnownDefaultPair")
 	public NBTTagCompound lastKnownDefaultPairGetter() {
@@ -208,10 +216,12 @@ public class TileCraneCore extends TileMod implements ITickable {
 			HashSet<BlockPos> pole = PosUtils.getCraneVerticalPole(world, pos, true, new HashSet<>());
 			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
 
-			if (arm != null)
+			if (arm != null) {
+				if (craneArmSample == null)
+					craneArmSample = world.getBlockState(arm.iterator().next());
 				if (armLength != arm.size())
 					armLength = arm.size();
-
+			}
 			if (defaultPair == null)
 				if (lastKnownDefaultPair == null) return;
 				else defaultPair = lastKnownDefaultPair;
@@ -230,22 +240,10 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 			double angle = Math.toDegrees(angle1 - angle2);
 
-			//prevYaw = currentYaw = 0;
-
 			destYaw = (float) angle;
 
 			handleFrom = pos;
 			handleTo = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
-
-			ParticleBuilder glitter = new ParticleBuilder(10);
-			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setColor(Color.BLACK);
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setScale(2);
-			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(handleFrom).addVector(0.5, 0.5, 0.5)), 1);
-			glitter.setColor(Color.RED);
-			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(handleTo).addVector(0.5, 0.5, 0.5)), 1);
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {

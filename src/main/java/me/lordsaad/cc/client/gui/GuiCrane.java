@@ -10,11 +10,7 @@ import com.teamwizardry.librarianlib.features.gui.mixin.ScissorMixin;
 import com.teamwizardry.librarianlib.features.gui.mixin.gl.GlMixin;
 import com.teamwizardry.librarianlib.features.kotlin.ClientUtilMethods;
 import com.teamwizardry.librarianlib.features.math.Vec2d;
-import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
-import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.features.sprite.Sprite;
 import com.teamwizardry.librarianlib.features.sprite.Texture;
 import kotlin.Pair;
@@ -36,10 +32,8 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.EnumSkyBlock;
 
-import java.awt.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -238,11 +232,13 @@ public class GuiCrane extends GuiBase {
 					prevX = x;
 					prevY = y;
 				}
-				BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
 
+				BlockPos block = pos.add(new BlockPos(x, 0, y));
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
 					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+					if (!mc.player.isCreative())
+						PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
 				}
 			} else {
 				if (from != null) {
@@ -258,16 +254,7 @@ public class GuiCrane extends GuiBase {
 				if (!event.getComponent().getMouseOver()) return;
 				double x = event.getMousePos().getXi() / tileSize;
 				double y = event.getMousePos().getYi() / tileSize;
-				BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
-
-				ParticleBuilder glitter = new ParticleBuilder(40);
-				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(Color.GREEN);
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-				});
+				BlockPos block = pos.add(new BlockPos(x, 0, y));
 
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
