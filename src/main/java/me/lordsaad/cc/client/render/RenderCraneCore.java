@@ -3,10 +3,7 @@ package me.lordsaad.cc.client.render;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.VertexBuffer;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -20,7 +17,6 @@ import net.minecraftforge.client.model.ModelLoaderRegistry;
  * Created by LordSaad.
  */
 public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
-
 
 	private IBakedModel modelCraneBase = null, modelCraneHandle;
 
@@ -79,7 +75,8 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			}
 			GlStateManager.popMatrix();
 
-
+			// TODO
+			/*
 			///////////////////////////
 			//        HANDLE         //
 			///////////////////////////
@@ -87,11 +84,6 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			GlStateManager.enableAlpha();
 			GlStateManager.enableBlend();
 			GlStateManager.enableLighting();
-
-			BlockPos initialOffset = te.getPos().offset(te.originalDirection.getOpposite());
-			BlockPos adjustedY = new BlockPos(initialOffset.getX(), te.originalArmPos.getY() - 1, initialOffset.getZ());
-			BlockPos relative = te.getPos().subtract(adjustedY);
-			GlStateManager.translate(relative.getX(), 0, relative.getZ());
 
 			double currentX, currentY;
 			if (subtractedMillis < transitionTimeMax) {
@@ -108,19 +100,17 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 					currentY = ((te.handleFrom.getY() - te.handleTo.getY()) / 2.0) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.handleTo.getY() + te.handleFrom.getY()) / 2.0;
 			} else currentY = te.handleTo.getY();
 
-			GlStateManager.disableLighting();
-			Tessellator tessellator = Tessellator.getInstance();
-			VertexBuffer vertexbuffer = tessellator.getBuffer();
-
-			//vertexbuffer.begin(7, DefaultVertexFormats.BLOCK);
-			BlockPos blockpos = new BlockPos(currentX, te.originalArmPos.getY() - 1, currentY);
-
-			GlStateManager.translate(x, y, z);
+			GlStateManager.translate(x + 0.5, y + te.originalArmPos.getY() - te.getPos().getY(), z + 0.5);
 			GlStateManager.rotate(yaw, 0, 1, 0);
-			GlStateManager.translate((float) -blockpos.getX() - 0.5, (float) -blockpos.getY(), (float) -blockpos.getZ() - 0.5);
-			GlStateManager.translate(currentX, -1, currentY);
+			GlStateManager.translate(-0.5, 0, -0.5);
+			BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection);
+			GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
 
-			//		Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneHandle, 1.0F, 1, 1, 1);
+			BlockPos blockpos = te.getPos().subtract(new BlockPos(currentX, te.originalArmPos.getY() - 1, currentY));
+			GlStateManager.rotate(yaw, 0, 1, 0);
+			//GlStateManager.translate((float) blockpos.getX() - 0.5, (float) blockpos.getY(), (float) blockpos.getZ() - 0.5);
+			//GlStateManager.translate(currentX, -1, currentY);
+			Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneHandle, 1.0F, 1, 1, 1);
 
 			GlStateManager.popMatrix();
 
@@ -175,7 +165,7 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 				GlStateManager.enableLighting();
 				GlStateManager.popMatrix();
 
-			}
+			}*/
 		}
 	}
 }
