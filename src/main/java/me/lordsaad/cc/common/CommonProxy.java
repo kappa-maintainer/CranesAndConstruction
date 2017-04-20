@@ -1,6 +1,7 @@
 package me.lordsaad.cc.common;
 
 import com.teamwizardry.librarianlib.common.network.PacketHandler;
+import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
 import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.init.ModBlocks;
@@ -17,7 +18,10 @@ public class CommonProxy {
 	public void preInit(FMLPreInitializationEvent event) {
 		ModBlocks.init();
 
+		CommonEventHandler.INSTANCE.getClass();
+
 		PacketHandler.register(PacketSendBlockToCrane.class, Side.SERVER);
+		PacketHandler.register(PacketReduceStackFromPlayer.class, Side.SERVER);
 		PacketHandler.register(PacketShowCraneParticles.class, Side.CLIENT);
 	}
 

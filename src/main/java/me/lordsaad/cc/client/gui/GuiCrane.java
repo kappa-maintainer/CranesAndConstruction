@@ -19,6 +19,7 @@ import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
+import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
 import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -228,6 +229,8 @@ public class GuiCrane extends GuiBase {
 			if (selected != null) {
 				ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
 				PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+				if (!mc.player.isCreative())
+					PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
 			}
 		});
 

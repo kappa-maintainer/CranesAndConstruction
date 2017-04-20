@@ -3,7 +3,7 @@ package me.lordsaad.cc.common.block;
 import com.teamwizardry.librarianlib.common.base.block.BlockMod;
 import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import kotlin.Pair;
-import me.lordsaad.cc.CCMain;
+import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.init.ModBlocks;
@@ -28,7 +28,7 @@ import java.util.HashSet;
 /**
  * Created by LordSaad.
  */
-public class BlockCraneBase extends BlockMod {
+public class BlockCraneBase extends BlockMod implements ILadder {
 
 	public BlockCraneBase() {
 		super("crane_base", Material.IRON);
@@ -70,14 +70,6 @@ public class BlockCraneBase extends BlockMod {
 				return true;
 			}
 
-		} else {
-			BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
-			if (seat != null) {
-				//	boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
-				//	if (seated)
-					playerIn.openGui(CCMain.instance, 0, worldIn, seat.getX(), seat.getY(), seat.getZ());
-				//	return seated;
-			}
 		}
 		return false;
 	}
@@ -118,7 +110,7 @@ public class BlockCraneBase extends BlockMod {
 	@SideOnly(Side.CLIENT)
 	@Nonnull
 	public BlockRenderLayer getBlockLayer() {
-		return BlockRenderLayer.TRANSLUCENT;
+		return BlockRenderLayer.CUTOUT;
 	}
 
 	@Override

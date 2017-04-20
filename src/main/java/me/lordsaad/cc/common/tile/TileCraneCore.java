@@ -1,12 +1,17 @@
 package me.lordsaad.cc.common.tile;
 
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
+import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
+import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.common.base.block.TileMod;
 import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister;
 import com.teamwizardry.librarianlib.common.util.math.Vec2d;
+import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
 import com.teamwizardry.librarianlib.common.util.saving.Save;
 import com.teamwizardry.librarianlib.common.util.saving.SaveMethodGetter;
 import com.teamwizardry.librarianlib.common.util.saving.SaveMethodSetter;
 import kotlin.Pair;
+import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
@@ -17,6 +22,7 @@ import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -27,6 +33,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.awt.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -158,15 +165,17 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 				if (originalDirection != null) {
 					prevYaw = currentYaw;
-					destYaw = 0;
-					transitionArmToOrigin = true;
 					worldTime = world.getTotalWorldTime();
+					if (queue.isEmpty()) {
+						destYaw = 0;
+						transitionArmToOrigin = true;
+					}
 				}
 			}
 			markDirty();
 
 		} else if (transitionArmToOrigin) {
-			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 35));
+			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
 
 			float yaw;
@@ -220,12 +229,22 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 			double angle = Math.toDegrees(angle1 - angle2);
 
-			prevYaw = currentYaw = 0;
+			//prevYaw = currentYaw = 0;
 
 			destYaw = (float) angle;
 
-			handleFrom = BlockPos.ORIGIN;
-			handleTo = pos.subtract(new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ()));
+			handleFrom = pos;
+			handleTo = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
+
+			ParticleBuilder glitter = new ParticleBuilder(10);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.BLACK);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(2);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(handleFrom).addVector(0.5, 0.5, 0.5)), 1);
+			glitter.setColor(Color.RED);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(handleTo).addVector(0.5, 0.5, 0.5)), 1);
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {

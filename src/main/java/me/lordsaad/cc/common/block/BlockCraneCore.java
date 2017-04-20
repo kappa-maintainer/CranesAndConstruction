@@ -4,6 +4,7 @@ import com.teamwizardry.librarianlib.common.base.block.BlockModContainer;
 import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
+import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.api.SittingUtil;
 import me.lordsaad.cc.client.render.RenderCraneCore;
@@ -35,7 +36,7 @@ import java.util.HashSet;
 /**
  * Created by LordSaad.
  */
-public class BlockCraneCore extends BlockModContainer {
+public class BlockCraneCore extends BlockModContainer implements ILadder {
 
 	public static final PropertyEnum<EnumFacing> FACING = PropertyEnum.create("facing", EnumFacing.class);
 
@@ -148,7 +149,7 @@ public class BlockCraneCore extends BlockModContainer {
 	@SideOnly(Side.CLIENT)
 	@Nonnull
 	public BlockRenderLayer getBlockLayer() {
-		return BlockRenderLayer.TRANSLUCENT;
+		return BlockRenderLayer.CUTOUT;
 	}
 
 	@Override
