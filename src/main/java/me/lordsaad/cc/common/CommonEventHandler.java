@@ -28,8 +28,9 @@ public class CommonEventHandler {
 		Entity entity = event.getEntity();
 
 		if (entity instanceof EntityPlayer)
-			if (((EntityPlayer) entity).isCreative() || ((EntityPlayer) entity).isSpectator() || ((EntityPlayer) entity).isElytraFlying())
-				return;
+			if (((EntityPlayer) entity).isSpectator()
+					|| ((EntityPlayer) entity).isElytraFlying()
+					|| ((EntityPlayer) entity).capabilities.isFlying) return;
 
 		BlockPos collidedLadder = getCollidedILadder(entity);
 		if (collidedLadder == null) return;

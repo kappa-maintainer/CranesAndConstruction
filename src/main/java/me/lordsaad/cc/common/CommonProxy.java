@@ -1,6 +1,6 @@
 package me.lordsaad.cc.common;
 
-import com.teamwizardry.librarianlib.common.network.PacketHandler;
+import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
 import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import me.lordsaad.cc.common.network.PacketShowCraneParticles;

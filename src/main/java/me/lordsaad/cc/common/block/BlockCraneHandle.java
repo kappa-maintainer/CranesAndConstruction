@@ -1,7 +1,7 @@
 package me.lordsaad.cc.common.block;
 
-import com.teamwizardry.librarianlib.common.base.ModCreativeTab;
-import com.teamwizardry.librarianlib.common.base.block.BlockMod;
+import com.teamwizardry.librarianlib.features.base.ModCreativeTab;
+import com.teamwizardry.librarianlib.features.base.block.BlockMod;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;

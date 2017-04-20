@@ -1,7 +1,7 @@
 package me.lordsaad.cc.common.block;
 
-import com.teamwizardry.librarianlib.common.base.block.BlockMod;
-import com.teamwizardry.librarianlib.common.network.PacketHandler;
+import com.teamwizardry.librarianlib.features.base.block.BlockMod;
+import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;

@@ -1,7 +1,7 @@
 package me.lordsaad.cc;
 
-import com.teamwizardry.librarianlib.LibrarianLog;
-import com.teamwizardry.librarianlib.common.base.ModCreativeTab;
+import com.teamwizardry.librarianlib.core.LibrarianLog;
+import com.teamwizardry.librarianlib.features.base.ModCreativeTab;
 import me.lordsaad.cc.common.CommonProxy;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.item.ItemStack;

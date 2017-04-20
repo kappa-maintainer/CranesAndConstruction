@@ -1,7 +1,7 @@
 package me.lordsaad.cc.common.block;
 
-import com.teamwizardry.librarianlib.common.base.block.BlockModContainer;
-import com.teamwizardry.librarianlib.common.network.PacketHandler;
+import com.teamwizardry.librarianlib.features.base.block.BlockModContainer;
+import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.ILadder;
@@ -144,6 +144,7 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 
 		return super.removedByPlayer(state, world, pos, player, willHarvest);
 	}
+
 	@Override
 	@SideOnly(Side.CLIENT)
 	@Nonnull

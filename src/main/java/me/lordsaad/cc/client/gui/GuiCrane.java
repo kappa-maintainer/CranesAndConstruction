@@ -1,21 +1,22 @@
 package me.lordsaad.cc.client.gui;
 
 import com.google.common.collect.HashMultimap;
-import com.teamwizardry.librarianlib.client.core.ClientTickHandler;
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
-import com.teamwizardry.librarianlib.client.gui.GuiBase;
-import com.teamwizardry.librarianlib.client.gui.GuiComponent;
-import com.teamwizardry.librarianlib.client.gui.components.ComponentList;
-import com.teamwizardry.librarianlib.client.gui.components.ComponentSprite;
-import com.teamwizardry.librarianlib.client.gui.components.ComponentStack;
-import com.teamwizardry.librarianlib.client.gui.components.ComponentVoid;
-import com.teamwizardry.librarianlib.client.gui.mixin.ButtonMixin;
-import com.teamwizardry.librarianlib.client.sprite.Sprite;
-import com.teamwizardry.librarianlib.client.sprite.Texture;
-import com.teamwizardry.librarianlib.common.network.PacketHandler;
-import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.core.client.ClientTickHandler;
+import com.teamwizardry.librarianlib.features.gui.GuiBase;
+import com.teamwizardry.librarianlib.features.gui.GuiComponent;
+import com.teamwizardry.librarianlib.features.gui.components.*;
+import com.teamwizardry.librarianlib.features.gui.mixin.ButtonMixin;
+import com.teamwizardry.librarianlib.features.gui.mixin.ScissorMixin;
+import com.teamwizardry.librarianlib.features.gui.mixin.gl.GlMixin;
+import com.teamwizardry.librarianlib.features.kotlin.ClientUtilMethods;
+import com.teamwizardry.librarianlib.features.math.Vec2d;
+import com.teamwizardry.librarianlib.features.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.features.network.PacketHandler;
+import com.teamwizardry.librarianlib.features.particle.ParticleBuilder;
+import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
+import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
+import com.teamwizardry.librarianlib.features.sprite.Sprite;
+import com.teamwizardry.librarianlib.features.sprite.Texture;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
@@ -37,7 +38,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.EnumSkyBlock;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.ArrayDeque;
@@ -53,13 +53,23 @@ public class GuiCrane extends GuiBase {
 	Texture textureBackground = new Texture(new ResourceLocation(CCMain.MOD_ID, "textures/gui/crane_gui.png"));
 	Sprite spriteBackground = textureBackground.getSprite("bg", 245, 256);
 	Sprite tileSelector = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select.png"));
+	Sprite tileSelector2 = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select_2.png"));
 	private double tick = 0;
-	private IBlockState[][] grid;
 	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
 	private ComponentStack selected;
+	private ComponentSprite selectionRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
+	private ComponentSprite hoverRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
+
+	private Vec2d offset, from;
+
+	private int[] vbocache1 = null, vbocache2 = null;
 
 	public GuiCrane(BlockPos pos) {
 		super(490, 512);
+
+		selectionRect.setVisible(false);
+		hoverRect.setVisible(false);
+		getMainComponents().add(selectionRect, hoverRect);
 
 		int width;
 		int height;
@@ -84,17 +94,17 @@ public class GuiCrane extends GuiBase {
 				for (int k = -height - extraHeight + (width > 12 ? width / 5 : 0); k < extraHeight; k++) {
 					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
 					if (mc.world.isAirBlock(pos1)) continue;
+
 					IBlockState state = mc.world.getBlockState(pos1);
-					int sky = mc.world.getLightFromNeighborsFor(EnumSkyBlock.SKY, pos);
-					int block = mc.world.getLightFromNeighborsFor(EnumSkyBlock.BLOCK, pos);
-					if (Math.max(sky, block) >= 15) {
-						boolean surrounded = true;
-						for (EnumFacing facing : EnumFacing.VALUES)
-							if (mc.world.isAirBlock(pos1.offset(facing))) {
-								surrounded = false;
-								break;
-							}
-						if (!surrounded)
+					int sky = mc.world.getLightFromNeighborsFor(EnumSkyBlock.SKY, pos1);
+					int block = mc.world.getLightFromNeighborsFor(EnumSkyBlock.BLOCK, pos1);
+					boolean surrounded = true;
+					for (EnumFacing facing : EnumFacing.VALUES)
+						if (mc.world.isAirBlock(pos1.offset(facing))) {
+							surrounded = false;
+							break;
+						}
+					if (Math.max(sky, block) >= 15 || !surrounded) {
 							blocks.put(state, pos1.subtract(pos));
 					}
 				}
@@ -113,76 +123,105 @@ public class GuiCrane extends GuiBase {
 			int horizontalAngle = 40;
 			int verticalAngle = 45;
 
-			for (IBlockState state : blocks.keySet())
-				for (BlockPos pos1 : blocks.get(state)) {
+			GlStateManager.pushMatrix();
+			GlStateManager.disableCull();
 
-					GlStateManager.pushMatrix();
-					GlStateManager.disableCull();
+			GlStateManager.translate(325, 75, 500);
+			GlStateManager.rotate(180, 1, 0, 0);
+			GlStateManager.rotate((float) ((tick + event.getPartialTicks())), 0, 1, 0);
+			GlStateManager.translate(tileSideSize, tileSideSize, tileSideSize);
+			GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
 
-					GlStateManager.translate(325, 75, 500);
-					GlStateManager.rotate((float) ((tick + event.getPartialTicks())), 0, 1, 0);
-					GlStateManager.translate(pos1.getX() * tileSideSize, -pos1.getY() * tileSideSize, pos1.getZ() * tileSideSize);
-					GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
+			Tessellator tes = Tessellator.getInstance();
+			VertexBuffer buffer = tes.getBuffer();
+			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-					GlStateManager.translate(-pos1.getX(), -pos1.getY(), -pos1.getZ());
+			if (vbocache2 == null) { // if there is no cache, create one
+				buffer.begin(7, DefaultVertexFormats.BLOCK); // init the buffer with the settings
 
-					Tessellator tes = Tessellator.getInstance();
-					VertexBuffer buffer = tes.getBuffer();
-					BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
+				for (IBlockState state2 : blocks.keySet())
+					for (BlockPos pos2 : blocks.get(state2))
+						dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state2), state2, pos2, buffer, false, 0);
 
-					mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+				vbocache2 = ClientUtilMethods.createCacheArrayAndReset(buffer); // cache your values
+			}
 
-					dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
+			// once that’s done, draw the cache
+			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
-					tes.draw();
+			buffer.begin(7, DefaultVertexFormats.BLOCK);
+			buffer.addVertexData(vbocache2);
 
-					GlStateManager.popMatrix();
-				}
+			tes.draw();
+
+			GlStateManager.popMatrix();
 		});
 
-		grid = new IBlockState[width * 2][width * 2];
+		getMainComponents().add(sideView);
+
 		int guiSize = 300;
-		int tileSize = guiSize / (width * 2);
-		ComponentVoid topView = new ComponentVoid(175, 200, 300, 298);
+		int tileSize = 17;
+		//ArrayList<Pair<BlockPos, IBlockState>> grid = new ArrayList<>();
+		IBlockState[][] grid = new IBlockState[width * 2][width * 2];
+		for (IBlockState state : blocks.keySet())
+			for (BlockPos blockPos : blocks.get(state)) {
+
+			}
+
+		ComponentVoid boxing = new ComponentVoid(175, 200, 300, 300);
+
+		ComponentRect topView = new ComponentRect(0, 0, 300, 300);
+
+		boxing.add(topView);
+		getMainComponents().add(boxing);
+		ScissorMixin.INSTANCE.scissor(topView);
+
 		topView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
-			for (IBlockState state : blocks.keySet())
-				for (BlockPos pos1 : blocks.get(state)) {
+			GlStateManager.pushMatrix();
+			GlStateManager.disableCull();
+			GlStateManager.enableAlpha();
+			GlStateManager.enableBlend();
+			GlStateManager.enableLighting();
 
-					GlStateManager.pushMatrix();
-					GlStateManager.disableCull();
-					GlStateManager.disableLighting();
+			GlStateManager.translate(133, 133, 200);
+			if (offset != null)
+				GlStateManager.translate(-offset.getX(), -offset.getY(), 0);
+			GlStateManager.rotate(-90, 1, 0, 0);
 
-					GlStateManager.translate(325, 349, 300);
-					GlStateManager.rotate(-90, 1, 0, 0);
-					GlStateManager.translate(pos1.getX() * tileSize, -pos1.getY() * tileSize, pos1.getZ() * tileSize);
-					GlStateManager.scale(tileSize, tileSize, tileSize);
+			Tessellator tes = Tessellator.getInstance();
+			VertexBuffer buffer = tes.getBuffer();
+			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-					GlStateManager.translate(-pos1.getX(), -pos1.getY(), -pos1.getZ());
+			if (vbocache1 == null) { // if there is no cache, create one
+				buffer.begin(7, DefaultVertexFormats.BLOCK); // init the buffer with the settings
 
-					Tessellator tes = Tessellator.getInstance();
-					VertexBuffer buffer = tes.getBuffer();
-					BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
+				for (IBlockState state : blocks.keySet())
+					for (BlockPos pos1 : blocks.get(state))
+						dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
 
-					mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-					buffer.begin(7, DefaultVertexFormats.BLOCK);
+				vbocache1 = ClientUtilMethods.createCacheArrayAndReset(buffer); // cache your values
+			}
 
-					dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
+			// once that’s done, draw the cache
+			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+			GlStateManager.scale(tileSize, tileSize, tileSize);
+			//GlStateManager.translate(-centerPos.x, -centerPos.y, -centerPos.z);
 
-					tes.draw();
+			buffer.begin(7, DefaultVertexFormats.BLOCK);
+			buffer.addVertexData(vbocache1);
 
-					GlStateManager.enableLighting();
-					GlStateManager.popMatrix();
-				}
+			tes.draw();
+
+			GlStateManager.popMatrix();
 
 			if (!event.getComponent().getMouseOver()) return;
-			int gridX = event.getMousePos().getXi() / tileSize;
-			int gridY = event.getMousePos().getYi() / tileSize;
+			int gridX = event.getMousePos().getXi() / tileSize * tileSize - (offset == null ? 0 : offset.getXi() / tileSize * tileSize);
+			int gridY = event.getMousePos().getYi() / tileSize * tileSize - (offset == null ? 0 : offset.getYi() / tileSize * tileSize);
 
 			GlStateManager.pushMatrix();
-			GlStateManager.translate(180, 200, 500);
-			tileSelector.getTex().bind();
-			tileSelector.draw((int) ClientTickHandler.getPartialTicks(), gridX * tileSize, gridY * tileSize, tileSize, tileSize);
+			GlStateManager.translate(0, 0, 1000);
+			tileSelector2.getTex().bind();
+			tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX - 3, gridY - 3, tileSize, tileSize);
 			GlStateManager.popMatrix();
 		});
 
@@ -192,45 +231,57 @@ public class GuiCrane extends GuiBase {
 
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
-			int x = event.getMousePos().getXi() / tileSize;
-			int y = event.getMousePos().getYi() / tileSize;
-			BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
+			if (!isShiftKeyDown()) {
+				double x = event.getMousePos().getXi() / tileSize;
+				double y = event.getMousePos().getYi() / tileSize;
+				BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
 
-			ParticleBuilder glitter = new ParticleBuilder(40);
-			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setColor(Color.GREEN);
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setScale(2);
-			ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-			});
+				ParticleBuilder glitter = new ParticleBuilder(40);
+				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setColor(Color.GREEN);
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setScale(2);
+				ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+				});
 
-			if (selected != null) {
-				ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
-				PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+				if (selected != null) {
+					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
+					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+				}
+			} else {
+				if (from != null) {
+					offset = from.sub(event.getMousePos());
+				}
 			}
 		});
 
 		topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
-			int x = event.getMousePos().getXi() / tileSize;
-			int y = event.getMousePos().getYi() / tileSize;
-			BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
+			if (!isShiftKeyDown()) {
 
-			ParticleBuilder glitter = new ParticleBuilder(40);
-			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setColor(Color.GREEN);
-			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-			glitter.setScale(2);
-			ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-			});
+				if (!event.getComponent().getMouseOver()) return;
+				double x = event.getMousePos().getXi() / tileSize;
+				double y = event.getMousePos().getYi() / tileSize;
+				BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
 
-			if (selected != null) {
-				ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
-				PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
-				if (!mc.player.isCreative())
-					PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
+				ParticleBuilder glitter = new ParticleBuilder(40);
+				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setColor(Color.GREEN);
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setScale(2);
+				ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
+				});
+
+				if (selected != null) {
+					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
+					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
+					if (!mc.player.isCreative())
+						PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
+				}
+			} else {
+				from = event.getMousePos();
 			}
 		});
 
@@ -241,7 +292,7 @@ public class GuiCrane extends GuiBase {
 
 		final int size = itemBlocks.size();
 		for (int i = 0; i < Math.ceil(size / 9.0); i++) {
-			ComponentList inventory = new ComponentList(124 - (i * 36), 15);
+			ComponentList inventory = new ComponentList(16 + (i * 36), 16);
 			inventory.setChildScale(2);
 
 			for (int j = 0; j < 9; j++) {
@@ -251,33 +302,25 @@ public class GuiCrane extends GuiBase {
 				compStack.setMarginBottom(2);
 				compStack.getStack().setValue(stack);
 
+				final int finalI = i, finalJ = j;
 				compStack.BUS.hook(GuiComponent.MouseClickEvent.class, (event) -> {
+					if (!event.getComponent().getMouseOver()) return;
 					selected = compStack;
+					selectionRect.setVisible(true);
+					selectionRect.setPos(new Vec2d(16 + finalI * 36, 16 + finalJ * 36));
+					GlMixin.INSTANCE.transform(selectionRect).setValue(new Vec3d(0, 0, 100));
 				});
 
-				int finalI = i;
-				int finalJ = j;
-				compStack.BUS.hook(GuiComponent.PreDrawEvent.class, (event) -> {
-					if (selected == compStack || event.getComponent().getMouseOver()) {
-						GlStateManager.pushMatrix();
-						GlStateManager.enableAlpha();
-						GlStateManager.enableBlend();
-
-						if (event.getComponent().getMouseOver() && selected != compStack)
-							GlStateManager.color(1f, 1f, 1f, 0.75f);
-
-						tileSelector.getTex().bind();
-						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 0.5f, 0.5f + (tileSize * finalJ * 1.2f), 15.5f, 15.5f);
-
-						GlStateManager.popMatrix();
-					}
+				compStack.BUS.hook(GuiComponent.MouseOverEvent.class, (event) -> {
+					if (!event.getComponent().getMouseOver()) return;
+					hoverRect.setVisible(true);
+					hoverRect.setPos(new Vec2d(16 + finalI * 36, 16 + finalJ * 36));
+					GlMixin.INSTANCE.transform(hoverRect).setValue(new Vec3d(0, 0, 100));
 				});
 				inventory.add(compStack);
 			}
 			getMainComponents().add(inventory);
 		}
-
-		compBackground.add(sideView, topView);
 	}
 
 	@Override
