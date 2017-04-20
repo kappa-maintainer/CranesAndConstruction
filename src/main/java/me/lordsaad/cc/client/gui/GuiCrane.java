@@ -2,6 +2,7 @@ package me.lordsaad.cc.client.gui;
 
 import com.google.common.collect.HashMultimap;
 import com.teamwizardry.librarianlib.core.client.ClientTickHandler;
+import com.teamwizardry.librarianlib.features.gui.EnumMouseButton;
 import com.teamwizardry.librarianlib.features.gui.GuiBase;
 import com.teamwizardry.librarianlib.features.gui.GuiComponent;
 import com.teamwizardry.librarianlib.features.gui.components.*;
@@ -58,6 +59,9 @@ public class GuiCrane extends GuiBase {
 	private int prevX = 0, prevY = 0;
 
 	private int[] vbocache1 = null, vbocache2 = null;
+
+	private double zoom = 1;
+	private int tileSize = 16;
 
 	public GuiCrane(BlockPos pos) {
 		super(490, 512);
@@ -160,8 +164,6 @@ public class GuiCrane extends GuiBase {
 
 		getMainComponents().add(boxing2);
 
-		int tileSize = 16;
-
 		ComponentVoid boxing = new ComponentVoid(175, 200, 300, 300);
 		ComponentRect topView = new ComponentRect(0, 0, 300, 300);
 
@@ -222,9 +224,19 @@ public class GuiCrane extends GuiBase {
 		new ButtonMixin<>(topView, () -> {
 		});
 
+		topView.BUS.hook(GuiComponent.MouseWheelEvent.class, (event) -> {
+			if (event.getDirection() == GuiComponent.MouseWheelDirection.UP) {
+				if (tileSize < 50)
+					tileSize += 2;
+			} else {
+				if (tileSize > 2)
+					tileSize -= 2;
+			}
+		});
+
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
-			if (!isShiftKeyDown()) {
+			if (event.getButton() != EnumMouseButton.MIDDLE) {
 				int x = event.getMousePos().getXi() / tileSize;
 				int y = event.getMousePos().getYi() / tileSize;
 				if (x == prevX && y == prevY) return;
@@ -234,6 +246,9 @@ public class GuiCrane extends GuiBase {
 				}
 
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
+
+				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width + 1) return;
+
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
 					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
@@ -249,12 +264,14 @@ public class GuiCrane extends GuiBase {
 
 		topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
-			if (!isShiftKeyDown()) {
+			if (event.getButton() != EnumMouseButton.MIDDLE) {
 
 				if (!event.getComponent().getMouseOver()) return;
 				double x = event.getMousePos().getXi() / tileSize;
 				double y = event.getMousePos().getYi() / tileSize;
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
+
+				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width + 1) return;
 
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
