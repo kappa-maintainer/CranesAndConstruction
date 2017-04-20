@@ -52,7 +52,7 @@ public class CommonEventHandler {
 	public BlockPos getCollidedILadder(@Nonnull Entity entity) {
 		boolean isSpectator = (entity instanceof EntityPlayer && ((EntityPlayer) entity).isSpectator());
 		if (isSpectator) return null;
-		AxisAlignedBB bb = entity.getEntityBoundingBox().expand(0.1, 0.1, 0.1);
+		AxisAlignedBB bb = entity.getEntityBoundingBox().expand(0.3, 0, 0.3);
 		int mX = MathHelper.floor(bb.minX);
 		int mY = MathHelper.floor(bb.minY);
 		int mZ = MathHelper.floor(bb.minZ);
