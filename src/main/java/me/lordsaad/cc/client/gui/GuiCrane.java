@@ -61,6 +61,7 @@ public class GuiCrane extends GuiBase {
 	private ComponentSprite hoverRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 
 	private Vec2d offset, from;
+	private int prevX = 0, prevY = 0;
 
 	private int[] vbocache1 = null, vbocache2 = null;
 
@@ -91,7 +92,7 @@ public class GuiCrane extends GuiBase {
 
 		for (int i = -width; i < width; i++)
 			for (int j = -width; j < width; j++)
-				for (int k = -height - extraHeight + (width > 12 ? width / 5 : 0); k < extraHeight; k++) {
+				for (int k = -height - extraHeight; k < extraHeight; k++) {
 					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
 					if (mc.world.isAirBlock(pos1)) continue;
 
@@ -105,19 +106,24 @@ public class GuiCrane extends GuiBase {
 							break;
 						}
 					if (Math.max(sky, block) >= 15 || !surrounded) {
-							blocks.put(state, pos1.subtract(pos));
+						blocks.put(state, pos1.subtract(pos));
 					}
 				}
 
 		ComponentSprite compBackground = new ComponentSprite(spriteBackground, 0, 0, 490, 512);
 		getMainComponents().add(compBackground);
 
-		ComponentVoid sideView = new ComponentVoid(175, 10, 150 * 2, 88 * 2);
+		ComponentVoid boxing2 = new ComponentVoid(175, 10, 150 * 2, 88 * 2);
+		ComponentVoid sideView = new ComponentVoid(0, 0, 150 * 2, 88 * 2);
+
+		boxing2.add(sideView);
+		ScissorMixin.INSTANCE.scissor(sideView);
+
 		int guiSideWidth = 70 * 2;
 		int tileSideSize = guiSideWidth / (height * 2);
 		sideView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 
-			if (tick >= 360) tick = 0;
+			if (tick >= 360 * 2) tick = 0;
 			else tick++;
 
 			int horizontalAngle = 40;
@@ -126,9 +132,10 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.pushMatrix();
 			GlStateManager.disableCull();
 
-			GlStateManager.translate(325, 75, 500);
+			GlStateManager.translate(150, 75, 500);
 			GlStateManager.rotate(180, 1, 0, 0);
-			GlStateManager.rotate((float) ((tick + event.getPartialTicks())), 0, 1, 0);
+			GlStateManager.rotate(horizontalAngle, -1, 0, 0);
+			GlStateManager.rotate((float) ((tick + event.getPartialTicks()) / 2), 0, 1, 0);
 			GlStateManager.translate(tileSideSize, tileSideSize, tileSideSize);
 			GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
 
@@ -157,19 +164,11 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.popMatrix();
 		});
 
-		getMainComponents().add(sideView);
+		getMainComponents().add(boxing2);
 
-		int guiSize = 300;
-		int tileSize = 17;
-		//ArrayList<Pair<BlockPos, IBlockState>> grid = new ArrayList<>();
-		IBlockState[][] grid = new IBlockState[width * 2][width * 2];
-		for (IBlockState state : blocks.keySet())
-			for (BlockPos blockPos : blocks.get(state)) {
-
-			}
+		int tileSize = 16;
 
 		ComponentVoid boxing = new ComponentVoid(175, 200, 300, 300);
-
 		ComponentRect topView = new ComponentRect(0, 0, 300, 300);
 
 		boxing.add(topView);
@@ -215,13 +214,13 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.popMatrix();
 
 			if (!event.getComponent().getMouseOver()) return;
-			int gridX = event.getMousePos().getXi() / tileSize * tileSize - (offset == null ? 0 : offset.getXi() / tileSize * tileSize);
-			int gridY = event.getMousePos().getYi() / tileSize * tileSize - (offset == null ? 0 : offset.getYi() / tileSize * tileSize);
+			int gridX = event.getMousePos().getXi() / tileSize * tileSize;
+			int gridY = event.getMousePos().getYi() / tileSize * tileSize;
 
 			GlStateManager.pushMatrix();
 			GlStateManager.translate(0, 0, 1000);
 			tileSelector2.getTex().bind();
-			tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX - 3, gridY - 3, tileSize, tileSize);
+			tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX + 5, gridY + 5, tileSize, tileSize);
 			GlStateManager.popMatrix();
 		});
 
@@ -232,18 +231,14 @@ public class GuiCrane extends GuiBase {
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
 			if (!isShiftKeyDown()) {
-				double x = event.getMousePos().getXi() / tileSize;
-				double y = event.getMousePos().getYi() / tileSize;
+				int x = event.getMousePos().getXi() / tileSize;
+				int y = event.getMousePos().getYi() / tileSize;
+				if (x == prevX && y == prevY) return;
+				else {
+					prevX = x;
+					prevY = y;
+				}
 				BlockPos block = pos.subtract(new Vec3i(width, 0, width)).add(x, 0, y);
-
-				ParticleBuilder glitter = new ParticleBuilder(40);
-				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(Color.GREEN);
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, mc.world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-				});
 
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
@@ -281,7 +276,8 @@ public class GuiCrane extends GuiBase {
 						PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
 				}
 			} else {
-				from = event.getMousePos();
+				if (offset == null) from = event.getMousePos();
+				else from = event.getMousePos().add(offset);
 			}
 		});
 
