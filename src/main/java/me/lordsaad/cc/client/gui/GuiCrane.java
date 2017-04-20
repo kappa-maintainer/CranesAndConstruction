@@ -81,7 +81,7 @@ public class GuiCrane extends GuiBase {
 
 		for (int i = -width; i < width; i++)
 			for (int j = -width; j < width; j++)
-				for (int k = -height - extraHeight + (width > 15 ? width / 10 : 0); k < extraHeight; k++) {
+				for (int k = -height - extraHeight + (width > 12 ? width / 5 : 0); k < extraHeight; k++) {
 					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
 					if (mc.world.isAirBlock(pos1)) continue;
 					IBlockState state = mc.world.getBlockState(pos1);
@@ -119,7 +119,7 @@ public class GuiCrane extends GuiBase {
 					GlStateManager.pushMatrix();
 					GlStateManager.disableCull();
 
-					GlStateManager.translate(325, 50, 500);
+					GlStateManager.translate(325, 75, 500);
 					GlStateManager.rotate((float) ((tick + event.getPartialTicks())), 0, 1, 0);
 					GlStateManager.translate(pos1.getX() * tileSideSize, -pos1.getY() * tileSideSize, pos1.getZ() * tileSideSize);
 					GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
@@ -167,7 +167,7 @@ public class GuiCrane extends GuiBase {
 					mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 					buffer.begin(7, DefaultVertexFormats.BLOCK);
 
-					dispatcher.getBlockModelRenderer().renderModel(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
+					dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
 
 					tes.draw();
 
@@ -267,7 +267,7 @@ public class GuiCrane extends GuiBase {
 							GlStateManager.color(1f, 1f, 1f, 0.75f);
 
 						tileSelector.getTex().bind();
-						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 0.5f, 0.5f + (tileSize * finalJ * 3.6f), 15.5f, 15.5f);
+						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 0.5f, 0.5f + (tileSize * finalJ * 1.2f), 15.5f, 15.5f);
 
 						GlStateManager.popMatrix();
 					}

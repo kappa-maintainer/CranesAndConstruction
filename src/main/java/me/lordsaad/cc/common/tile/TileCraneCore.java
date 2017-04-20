@@ -205,6 +205,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 			if (nextPair == null) return;
 
 			HashSet<BlockPos> arm = PosUtils.getCraneHorizontalPole(world, pos);
+			HashSet<BlockPos> pole = PosUtils.getCraneVerticalPole(world, pos, true, new HashSet<>());
 			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
 
 			if (arm != null)
@@ -248,7 +249,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {
-					if (blocks.toLong() == pos.toLong()) continue;
+					if (pole != null && pole.contains(blocks)) continue;
 					world.setBlockToAir(blocks);
 				}
 

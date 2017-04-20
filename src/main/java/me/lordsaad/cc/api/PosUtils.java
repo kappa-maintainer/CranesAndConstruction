@@ -12,7 +12,6 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Created by LordSaad.
@@ -168,12 +167,25 @@ public class PosUtils {
 
 	@Nullable
 	public static BlockPos findCraneSeat(World world, BlockPos blockInCrane) {
-		Set<BlockPos> poses = getCrane(world, blockInCrane, new HashSet<>());
+		HashSet<BlockPos> poses = getCrane(world, blockInCrane, new HashSet<>());
+		HashSet<BlockPos> seats = new HashSet<>();
 		for (BlockPos pos : poses) {
 			if (world.getBlockState(pos).getBlock() == ModBlocks.CRANE_CORE) {
-				return pos;
+				seats.add(pos);
 			}
 		}
-		return null;
+
+		if (seats.isEmpty()) return null;
+		if (seats.size() <= 1) return null;
+		BlockPos seat = new BlockPos(0, 9999, 0);
+		boolean anythingChanged = false;
+		for (BlockPos pos : seats) {
+			if (pos.getY() < seat.getY()) {
+				seat = pos;
+				anythingChanged = true;
+			}
+		}
+
+		return anythingChanged ? seat : null;
 	}
 }

@@ -144,7 +144,6 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 
 		return super.removedByPlayer(state, world, pos, player, willHarvest);
 	}
-
 	@Override
 	@SideOnly(Side.CLIENT)
 	@Nonnull

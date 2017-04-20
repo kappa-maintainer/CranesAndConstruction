@@ -67,7 +67,7 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			GlStateManager.enableBlend();
 			GlStateManager.enableLighting();
 
-			GlStateManager.translate(x + 0.5, y, z + 0.5);
+			GlStateManager.translate(x + 0.5, y + te.originalArmPos.getY() - te.getPos().getY(), z + 0.5);
 
 			GlStateManager.rotate(yaw, 0, 1, 0);
 

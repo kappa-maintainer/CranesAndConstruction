@@ -27,6 +27,10 @@ public class CommonEventHandler {
 	public void onLivingUpdate(LivingEvent.LivingUpdateEvent event) {
 		Entity entity = event.getEntity();
 
+		if (entity instanceof EntityPlayer)
+			if (((EntityPlayer) entity).isCreative() || ((EntityPlayer) entity).isSpectator() || ((EntityPlayer) entity).isElytraFlying())
+				return;
+
 		BlockPos collidedLadder = getCollidedILadder(entity);
 		if (collidedLadder == null) return;
 
