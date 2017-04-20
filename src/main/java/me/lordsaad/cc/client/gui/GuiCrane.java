@@ -20,7 +20,6 @@ import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
-import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
@@ -31,10 +30,12 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.EnumSkyBlock;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
@@ -79,14 +80,22 @@ public class GuiCrane extends GuiBase {
 
 		for (int i = -width; i < width; i++)
 			for (int j = -width; j < width; j++)
-				for (int k = -height; k < extraHeight; k++) {
+				for (int k = -height - 5; k < extraHeight; k++) {
 					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
 					if (mc.world.isAirBlock(pos1)) continue;
 					IBlockState state = mc.world.getBlockState(pos1);
-					if (mc.world.getCombinedLight(pos1, 15) >= 10
-							|| state.getBlock() == ModBlocks.CRANE_CORE
-							|| state.getBlock() == ModBlocks.CRANE_BASE)
-						blocks.put(state, pos1.subtract(pos));
+					int sky = mc.world.getLightFromNeighborsFor(EnumSkyBlock.SKY, pos);
+					int block = mc.world.getLightFromNeighborsFor(EnumSkyBlock.BLOCK, pos);
+					if (Math.max(sky, block) >= 15) {
+						boolean surrounded = true;
+						for (EnumFacing facing : EnumFacing.VALUES)
+							if (mc.world.isAirBlock(pos1.offset(facing))) {
+								surrounded = false;
+								break;
+							}
+						if (!surrounded)
+							blocks.put(state, pos1.subtract(pos));
+					}
 				}
 
 		ComponentSprite compBackground = new ComponentSprite(spriteBackground, 0, 0, 330, 512);

@@ -74,6 +74,23 @@ public class TileCraneCore extends TileMod implements ITickable {
 	@Save
 	public BlockPos handleTo;
 
+	@Nullable
+	public Pair<BlockPos, EnumFacing> lastKnownDefaultPair = null;
+
+	@SaveMethodGetter(saveName = "lastKnownDefaultPair")
+	public NBTTagCompound lastKnownDefaultPairGetter() {
+		NBTTagCompound nbt = new NBTTagCompound();
+		if (lastKnownDefaultPair == null) return nbt;
+		nbt.setTag("block_pos", NBTUtil.createPosTag(lastKnownDefaultPair.getFirst()));
+		nbt.setInteger("facing", lastKnownDefaultPair.getSecond().ordinal());
+		return nbt;
+	}
+
+	@SaveMethodSetter(saveName = "lastKnownDefaultPair")
+	public void lastKnownDefaultPairSetter(NBTTagCompound nbt) {
+		lastKnownDefaultPair = new Pair<>(NBTUtil.getPosFromTag(nbt.getCompoundTag("block_pos")), EnumFacing.getFront(nbt.getInteger("facing")));
+	}
+
 	@SaveMethodGetter(saveName = "nextPair")
 	public NBTTagCompound nextPairGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
@@ -119,7 +136,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 	@Override
 	public void update() {
 		if (transitionArm) {
-			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 35));
+			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
 
 			float yaw;
@@ -181,28 +198,34 @@ public class TileCraneCore extends TileMod implements ITickable {
 			HashSet<BlockPos> arm = PosUtils.getCraneHorizontalPole(world, pos);
 			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
 
-			if (arm != null) armLength = arm.size();
-			if (defaultPair != null) {
-				originalArmPos = defaultPair.getFirst();
-				originalDirection = defaultPair.getSecond();
+			if (arm != null)
+				if (armLength != arm.size())
+					armLength = arm.size();
 
-				Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(defaultPair.getSecond())));
-				Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
-				Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
-				Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
+			if (defaultPair == null)
+				if (lastKnownDefaultPair == null) return;
+				else defaultPair = lastKnownDefaultPair;
+			else lastKnownDefaultPair = defaultPair;
 
-				double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
-				double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
+			originalArmPos = defaultPair.getFirst();
+			originalDirection = defaultPair.getSecond();
 
-				double angle = Math.toDegrees(angle1 - angle2);
+			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(defaultPair.getSecond())));
+			Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
+			Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
+			Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
 
-				prevYaw = currentYaw = destYaw;
+			double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
+			double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
 
-				destYaw = (float) angle;
+			double angle = Math.toDegrees(angle1 - angle2);
 
-				handleFrom = BlockPos.ORIGIN;
-				handleTo = pos.subtract(new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ()));
-			}
+			prevYaw = currentYaw = 0;
+
+			destYaw = (float) angle;
+
+			handleFrom = BlockPos.ORIGIN;
+			handleTo = pos.subtract(new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ()));
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {
@@ -211,6 +234,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 				}
 
 			transitionArm = true;
+
 			worldTime = world.getTotalWorldTime();
 
 			markDirty();
