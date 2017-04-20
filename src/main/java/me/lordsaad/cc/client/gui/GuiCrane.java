@@ -50,7 +50,7 @@ public class GuiCrane extends GuiBase {
 
 	private static Minecraft mc = Minecraft.getMinecraft();
 	Texture textureBackground = new Texture(new ResourceLocation(CCMain.MOD_ID, "textures/gui/crane_gui.png"));
-	Sprite spriteBackground = textureBackground.getSprite("bg", 165, 256);
+	Sprite spriteBackground = textureBackground.getSprite("bg", 245, 256);
 	Sprite tileSelector = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select.png"));
 	private double tick = 0;
 	private IBlockState[][] grid;
@@ -58,7 +58,7 @@ public class GuiCrane extends GuiBase {
 	private ComponentStack selected;
 
 	public GuiCrane(BlockPos pos) {
-		super(330, 512);
+		super(490, 512);
 
 		int width;
 		int height;
@@ -76,11 +76,11 @@ public class GuiCrane extends GuiBase {
 
 		if (height == 0 || width == 0) return;
 
-		int extraHeight = (highestBlock == null || craneSeat == null ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
+		int extraHeight = ((highestBlock == null || craneSeat == null) ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
 
 		for (int i = -width; i < width; i++)
 			for (int j = -width; j < width; j++)
-				for (int k = -height - 5; k < extraHeight; k++) {
+				for (int k = -height - extraHeight + (width > 15 ? width / 10 : 0); k < extraHeight; k++) {
 					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
 					if (mc.world.isAirBlock(pos1)) continue;
 					IBlockState state = mc.world.getBlockState(pos1);
@@ -98,10 +98,10 @@ public class GuiCrane extends GuiBase {
 					}
 				}
 
-		ComponentSprite compBackground = new ComponentSprite(spriteBackground, 0, 0, 330, 512);
+		ComponentSprite compBackground = new ComponentSprite(spriteBackground, 0, 0, 490, 512);
 		getMainComponents().add(compBackground);
 
-		ComponentVoid sideView = new ComponentVoid(15, 10, 150 * 2, 88 * 2);
+		ComponentVoid sideView = new ComponentVoid(175, 10, 150 * 2, 88 * 2);
 		int guiSideWidth = 70 * 2;
 		int tileSideSize = guiSideWidth / (height * 2);
 		sideView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
@@ -118,7 +118,7 @@ public class GuiCrane extends GuiBase {
 					GlStateManager.pushMatrix();
 					GlStateManager.disableCull();
 
-					GlStateManager.translate(165, 50, 500);
+					GlStateManager.translate(325, 50, 500);
 					GlStateManager.rotate((float) ((tick + event.getPartialTicks())), 0, 1, 0);
 					GlStateManager.translate(pos1.getX() * tileSideSize, -pos1.getY() * tileSideSize, pos1.getZ() * tileSideSize);
 					GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
@@ -143,7 +143,7 @@ public class GuiCrane extends GuiBase {
 		grid = new IBlockState[width * 2][width * 2];
 		int guiSize = 300;
 		int tileSize = guiSize / (width * 2);
-		ComponentVoid topView = new ComponentVoid(15, 200, 300, 298);
+		ComponentVoid topView = new ComponentVoid(175, 200, 300, 298);
 		topView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 			for (IBlockState state : blocks.keySet())
 				for (BlockPos pos1 : blocks.get(state)) {
@@ -152,7 +152,7 @@ public class GuiCrane extends GuiBase {
 					GlStateManager.disableCull();
 					GlStateManager.disableLighting();
 
-					GlStateManager.translate(166, 349, 300);
+					GlStateManager.translate(325, 349, 300);
 					GlStateManager.rotate(-90, 1, 0, 0);
 					GlStateManager.translate(pos1.getX() * tileSize, -pos1.getY() * tileSize, pos1.getZ() * tileSize);
 					GlStateManager.scale(tileSize, tileSize, tileSize);
@@ -179,9 +179,7 @@ public class GuiCrane extends GuiBase {
 			int gridY = event.getMousePos().getYi() / tileSize;
 
 			GlStateManager.pushMatrix();
-			GlStateManager.enableAlpha();
-			GlStateManager.enableBlend();
-			GlStateManager.translate(22, 205, 500);
+			GlStateManager.translate(180, 200, 500);
 			tileSelector.getTex().bind();
 			tileSelector.draw((int) ClientTickHandler.getPartialTicks(), gridX * tileSize, gridY * tileSize, tileSize, tileSize);
 			GlStateManager.popMatrix();
@@ -240,13 +238,14 @@ public class GuiCrane extends GuiBase {
 
 		final int size = itemBlocks.size();
 		for (int i = 0; i < Math.ceil(size / 9.0); i++) {
-			ComponentList inventory = new ComponentList(-48 - (i * 32), 40);
+			ComponentList inventory = new ComponentList(124 - (i * 36), 15);
 			inventory.setChildScale(2);
 
 			for (int j = 0; j < 9; j++) {
 				if (itemBlocks.isEmpty()) break;
 				ItemStack stack = itemBlocks.pop();
 				ComponentStack compStack = new ComponentStack(0, 0);
+				compStack.setMarginBottom(2);
 				compStack.getStack().setValue(stack);
 
 				compStack.BUS.hook(GuiComponent.MouseClickEvent.class, (event) -> {
@@ -256,13 +255,16 @@ public class GuiCrane extends GuiBase {
 				int finalI = i;
 				int finalJ = j;
 				compStack.BUS.hook(GuiComponent.PreDrawEvent.class, (event) -> {
-					if (selected == compStack) {
+					if (selected == compStack || event.getComponent().getMouseOver()) {
 						GlStateManager.pushMatrix();
 						GlStateManager.enableAlpha();
 						GlStateManager.enableBlend();
 
+						if (event.getComponent().getMouseOver() && selected != compStack)
+							GlStateManager.color(1f, 1f, 1f, 0.75f);
+
 						tileSelector.getTex().bind();
-						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), -finalI * 16, finalJ * 16, 16, 16);
+						tileSelector.draw((int) ClientTickHandler.getPartialTicks(), 0.5f, 0.5f + (tileSize * finalJ * 3.6f), 15.5f, 15.5f);
 
 						GlStateManager.popMatrix();
 					}

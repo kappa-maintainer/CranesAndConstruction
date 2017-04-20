@@ -64,7 +64,7 @@ public class PosUtils {
 	}
 
 	@Nullable
-	public static BlockPos getBaseOfCrane(World world, BlockPos pos, Set<BlockPos> blocks) {
+	public static BlockPos getBaseOfCrane(World world, BlockPos pos, HashSet<BlockPos> blocks) {
 		getCrane(world, pos, blocks);
 
 		for (BlockPos block : blocks)
@@ -149,7 +149,7 @@ public class PosUtils {
 		return getCraneHorizontalPole(world, horizontalPoleOriginPair.getFirst(), horizontalPoleOriginPair.getSecond(), new HashSet<>());
 	}
 
-	public static Set<BlockPos> getCrane(World world, BlockPos pos, Set<BlockPos> blocks) {
+	public static HashSet<BlockPos> getCrane(World world, BlockPos pos, HashSet<BlockPos> blocks) {
 		if (!blocks.contains(pos)) blocks.add(pos);
 		for (EnumFacing facing : EnumFacing.VALUES) {
 

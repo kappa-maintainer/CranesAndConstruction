@@ -1,25 +1,23 @@
 package me.lordsaad.cc.common.block;
 
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.common.base.block.BlockMod;
-import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
+import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -34,6 +32,12 @@ public class BlockCraneBase extends BlockMod {
 
 	public BlockCraneBase() {
 		super("crane_base", Material.IRON);
+	}
+
+	@Override
+	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+		super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
+		PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
 	}
 
 	@Override
@@ -62,6 +66,7 @@ public class BlockCraneBase extends BlockMod {
 
 				if (!playerIn.isCreative()) item.setCount(item.getCount() - 1);
 
+				PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
 				return true;
 			}
 
@@ -90,14 +95,6 @@ public class BlockCraneBase extends BlockMod {
 				complete.addAll(horizontal);
 			HashSet<Pair<IBlockState, BlockPos>> structure = new HashSet<>();
 			for (BlockPos block : complete) {
-				ParticleBuilder glitter = new ParticleBuilder(10);
-				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(Color.GREEN);
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-				});
 				if (block.getY() <= pos.getY()) continue;
 				IBlockState oldState = world.getBlockState(block);
 				structure.add(new Pair<>(oldState, block));
@@ -110,6 +107,7 @@ public class BlockCraneBase extends BlockMod {
 			for (Pair<IBlockState, BlockPos> pair : structure) {
 				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
+			PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
 			return false;
 		}
 

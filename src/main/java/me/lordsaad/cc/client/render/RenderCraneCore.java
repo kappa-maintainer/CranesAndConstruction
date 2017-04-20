@@ -1,6 +1,5 @@
 package me.lordsaad.cc.client.render;
 
-import com.teamwizardry.librarianlib.client.sprite.Sprite;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.client.Minecraft;
@@ -22,7 +21,6 @@ import net.minecraftforge.client.model.ModelLoaderRegistry;
  */
 public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 
-	public static Sprite line = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/blocks/crane_handle.png"));
 
 	private IBakedModel modelCraneBase = null, modelCraneHandle;
 
@@ -82,13 +80,58 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			}
 			GlStateManager.popMatrix();
 
+
+			///////////////////////////
+			//        HANDLE         //
+			///////////////////////////
+			GlStateManager.pushMatrix();
+			GlStateManager.enableAlpha();
+			GlStateManager.enableBlend();
+			GlStateManager.enableLighting();
+
+			BlockPos initialOffset = te.getPos().offset(te.originalDirection.getOpposite());
+			BlockPos adjustedY = new BlockPos(initialOffset.getX(), te.originalArmPos.getY() - 1, initialOffset.getZ());
+			BlockPos relative = te.getPos().subtract(adjustedY);
+			GlStateManager.translate(relative.getX(), 0, relative.getZ());
+
+			double currentX, currentY;
+			if (subtractedMillis < transitionTimeMax) {
+				if (Math.round(te.handleTo.getX()) > Math.round(te.handleFrom.getX()))
+					currentX = -((te.handleTo.getX() - te.handleFrom.getX()) / 2.0) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.handleTo.getX() + te.handleFrom.getX()) / 2.0;
+				else
+					currentX = ((te.handleFrom.getX() - te.handleTo.getX()) / 2.0) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.handleTo.getX() + te.handleFrom.getX()) / 2.0;
+			} else currentX = te.handleTo.getX();
+
+			if (subtractedMillis < transitionTimeMax) {
+				if (Math.round(te.handleTo.getY()) > Math.round(te.handleFrom.getY()))
+					currentY = -((te.handleTo.getY() - te.handleFrom.getY()) / 2.0) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.handleTo.getY() + te.handleFrom.getY()) / 2.0;
+				else
+					currentY = ((te.handleFrom.getY() - te.handleTo.getY()) / 2.0) * MathHelper.cos((float) (subtractedMillis * Math.PI / transitionTimeMax)) + (te.handleTo.getY() + te.handleFrom.getY()) / 2.0;
+			} else currentY = te.handleTo.getY();
+
+			GlStateManager.disableLighting();
+			Tessellator tessellator = Tessellator.getInstance();
+			VertexBuffer vertexbuffer = tessellator.getBuffer();
+
+			//vertexbuffer.begin(7, DefaultVertexFormats.BLOCK);
+			BlockPos blockpos = new BlockPos(currentX, te.originalArmPos.getY() - 1, currentY);
+
+			GlStateManager.translate(x, y, z);
+			GlStateManager.rotate(yaw, 0, 1, 0);
+			GlStateManager.translate((float) -blockpos.getX() - 0.5, (float) -blockpos.getY(), (float) -blockpos.getZ() - 0.5);
+			GlStateManager.translate(currentX, -1, currentY);
+
+			//		Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneHandle, 1.0F, 1, 1, 1);
+
+			GlStateManager.popMatrix();
+
 		}
 
-		if (te.transitionArm) {
+		///////////////////////////
+		//         SAND          //
+		///////////////////////////
 
-			///////////////////////////
-			//         SAND          //
-			///////////////////////////
+		if (te.transitionArm) {
 
 			if (te.nextPair != null) {
 				GlStateManager.pushMatrix();
@@ -129,8 +172,6 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 				BlockRendererDispatcher blockrendererdispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 				blockrendererdispatcher.getBlockModelRenderer().renderModel(te.getWorld(), blockrendererdispatcher.getModelForState(te.nextPair.getFirst()), te.nextPair.getFirst(), blockpos, vertexbuffer, false, 0);
 				tessellator.draw();
-
-				Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneHandle, 1.0F, 1, 1, 1);
 
 				GlStateManager.enableLighting();
 				GlStateManager.popMatrix();

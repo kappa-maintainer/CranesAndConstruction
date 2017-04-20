@@ -1,15 +1,13 @@
 package me.lordsaad.cc.common.block;
 
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleBuilder;
-import com.teamwizardry.librarianlib.client.fx.particle.ParticleSpawner;
-import com.teamwizardry.librarianlib.client.fx.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.common.base.block.BlockModContainer;
-import com.teamwizardry.librarianlib.common.util.math.interpolate.StaticInterp;
+import com.teamwizardry.librarianlib.common.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.api.SittingUtil;
 import me.lordsaad.cc.client.render.RenderCraneCore;
+import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
@@ -23,11 +21,10 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -68,6 +65,12 @@ public class BlockCraneCore extends BlockModContainer {
 	}
 
 	@Override
+	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+		super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
+		PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
+	}
+
+	@Override
 	public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing heldItem, float side, float hitX, float hitY) {
 		ItemStack item = playerIn.getHeldItem(hand);
 		if (item.getItem() == new ItemStack(ModBlocks.CRANE_BASE).getItem()) {
@@ -93,6 +96,7 @@ public class BlockCraneCore extends BlockModContainer {
 
 				if (!playerIn.isCreative()) item.setCount(item.getCount() - 1);
 
+				PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
 				return true;
 			}
 
@@ -121,14 +125,6 @@ public class BlockCraneCore extends BlockModContainer {
 				complete.addAll(horizontal);
 			HashSet<Pair<IBlockState, BlockPos>> structure = new HashSet<>();
 			for (BlockPos block : complete) {
-				ParticleBuilder glitter = new ParticleBuilder(10);
-				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(Color.GREEN);
-				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(block).addVector(0.5, 0.5, 0.5)), 1, 0, (aFloat, particleBuilder) -> {
-				});
 				if (block.getY() <= pos.getY()) continue;
 				IBlockState oldState = world.getBlockState(block);
 				structure.add(new Pair<>(oldState, block));
@@ -141,6 +137,7 @@ public class BlockCraneCore extends BlockModContainer {
 			for (Pair<IBlockState, BlockPos> pair : structure) {
 				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
+			PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
 			return false;
 		}
 
