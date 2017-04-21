@@ -1,12 +1,14 @@
 package me.lordsaad.cc.common.block;
 
 import com.teamwizardry.librarianlib.features.base.block.BlockModContainer;
+import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.api.SittingUtil;
 import me.lordsaad.cc.client.render.RenderCraneCore;
+import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
@@ -27,6 +29,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.HashSet;
 
 /**
@@ -64,8 +67,8 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 	@Override
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
 		super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
-		//if (!worldIn.isRemote)
-		//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
+		if (!worldIn.isRemote)
+			PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 	}
 
 	@Override
@@ -94,8 +97,8 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 
 				if (!playerIn.isCreative()) item.setCount(item.getCount() - 1);
 
-				//if (!worldIn.isRemote)
-				//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
+				if (!worldIn.isRemote)
+					PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 				return true;
 			}
 
@@ -136,8 +139,8 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 			for (Pair<IBlockState, BlockPos> pair : structure) {
 				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
-			//if (!world.isRemote)
-			//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
+			if (!world.isRemote)
+				PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 			return false;
 		}
 
