@@ -19,7 +19,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
@@ -68,9 +67,6 @@ public class TileCraneCore extends TileMod implements ITickable {
 	public long worldTime;
 
 	// Handle
-	@Save
-	public BlockPos handleFrom;
-
 	@Save
 	public BlockPos handleTo;
 
@@ -154,14 +150,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
 
-			float yaw;
-			if (worldTimeTransition < transitionTimeMax) {
-				if (Math.round(destYaw) > Math.round(prevYaw))
-					yaw = -((destYaw - prevYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
-				else
-					yaw = ((prevYaw - destYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
-				currentYaw = yaw;
-			} else {
+			if (worldTimeTransition >= transitionTimeMax) {
 				currentYaw = destYaw;
 				transitionArm = false;
 
@@ -179,22 +168,15 @@ public class TileCraneCore extends TileMod implements ITickable {
 						transitionArmToOrigin = true;
 					}
 				}
+				markDirty();
+				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 			}
-			markDirty();
-			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 
 		} else if (transitionArmToOrigin) {
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
 
-			float yaw;
-			if (worldTimeTransition < transitionTimeMax) {
-				if (Math.round(destYaw) > Math.round(prevYaw))
-					yaw = -((destYaw - prevYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
-				else
-					yaw = ((prevYaw - destYaw) / 2) * MathHelper.cos((float) (worldTimeTransition * Math.PI / transitionTimeMax)) + (destYaw + prevYaw) / 2;
-				currentYaw = yaw;
-			} else {
+			if (worldTimeTransition >= transitionTimeMax) {
 				prevYaw = currentYaw = destYaw = 0;
 				worldTime = world.getTotalWorldTime();
 				transitionArmToOrigin = false;
@@ -206,9 +188,9 @@ public class TileCraneCore extends TileMod implements ITickable {
 						world.setBlockState(armPos, ModBlocks.CRANE_BASE.getDefaultState(), 3);
 					}
 				}
+				markDirty();
+				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 			}
-			markDirty();
-			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		} else if (!queue.isEmpty()) {
 			nextPair = queue.pop();
 
@@ -224,38 +206,38 @@ public class TileCraneCore extends TileMod implements ITickable {
 				if (armLength != arm.size())
 					armLength = arm.size();
 			}
+
 			if (defaultPair == null)
 				if (lastKnownDefaultPair == null) return;
 				else defaultPair = lastKnownDefaultPair;
 			else lastKnownDefaultPair = defaultPair;
 
 			originalArmPos = defaultPair.getFirst();
+
 			originalDirection = defaultPair.getSecond();
+			if (originalDirection == null) return;
 
 			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(defaultPair.getSecond())));
 			Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
 			Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
 			Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
-
 			double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
 			double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
-
 			double angle = Math.toDegrees(angle1 - angle2);
-
 			destYaw = (float) angle;
 
-			handleFrom = pos;
-			handleTo = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
+			BlockPos nextPos = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
+			handleTo = pos.offset(originalDirection, (int) pos.getDistance(nextPos.getX(), nextPos.getY(), nextPos.getZ()));
+
+			transitionArm = true;
+
+			worldTime = world.getTotalWorldTime();
 
 			if (arm != null)
 				for (BlockPos blocks : arm) {
 					if (pole != null && pole.contains(blocks)) continue;
 					world.setBlockToAir(blocks);
 				}
-
-			transitionArm = true;
-
-			worldTime = world.getTotalWorldTime();
 
 			markDirty();
 			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
