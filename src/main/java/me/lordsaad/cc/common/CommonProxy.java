@@ -5,6 +5,7 @@ import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
 import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.init.ModBlocks;
+import me.lordsaad.cc.init.ModTab;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -16,6 +17,8 @@ import net.minecraftforge.fml.relauncher.Side;
 public class CommonProxy {
 
 	public void preInit(FMLPreInitializationEvent event) {
+		new ModTab();
+
 		ModBlocks.init();
 
 		CommonEventHandler.INSTANCE.getClass();

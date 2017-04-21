@@ -16,7 +16,8 @@ import javax.annotation.Nonnull;
 @Mod(
 		modid = CCMain.MOD_ID,
 		name = CCMain.MOD_NAME,
-		version = CCMain.VERSION
+		version = CCMain.VERSION,
+		dependencies = "required-after:librarianlib"
 )
 public class CCMain {
 

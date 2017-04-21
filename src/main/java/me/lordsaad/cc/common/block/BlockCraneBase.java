@@ -1,11 +1,9 @@
 package me.lordsaad.cc.common.block;
 
 import com.teamwizardry.librarianlib.features.base.block.BlockMod;
-import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import kotlin.Pair;
 import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;
-import me.lordsaad.cc.common.network.PacketShowCraneParticles;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -17,12 +15,10 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import java.awt.*;
 import java.util.HashSet;
 
 /**
@@ -37,7 +33,8 @@ public class BlockCraneBase extends BlockMod implements ILadder {
 	@Override
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
 		super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
-		PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
+		//if (!worldIn.isRemote)
+		//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 	}
 
 	@Override
@@ -66,7 +63,8 @@ public class BlockCraneBase extends BlockMod implements ILadder {
 
 				if (!playerIn.isCreative()) item.setCount(item.getCount() - 1);
 
-				PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(worldIn.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
+				//if (!worldIn.isRemote)
+				//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 				return true;
 			}
 
@@ -99,7 +97,8 @@ public class BlockCraneBase extends BlockMod implements ILadder {
 			for (Pair<IBlockState, BlockPos> pair : structure) {
 				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
 			}
-			PacketHandler.NETWORK.sendToAllAround(new PacketShowCraneParticles(pos, Color.GREEN), new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 32));
+			//if (!world.isRemote)
+			//	PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
 			return false;
 		}
 

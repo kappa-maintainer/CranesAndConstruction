@@ -49,6 +49,7 @@ public class GuiCrane extends GuiBase {
 	Sprite spriteBackground = textureBackground.getSprite("bg", 245, 256);
 	Sprite tileSelector = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select.png"));
 	Sprite tileSelector2 = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select_2.png"));
+	Sprite boxSprite = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/box.png"));
 	private double tick = 0;
 	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
 	private ComponentStack selected;
@@ -237,8 +238,8 @@ public class GuiCrane extends GuiBase {
 		topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
 			if (!event.getComponent().getMouseOver()) return;
 			if (event.getButton() != EnumMouseButton.MIDDLE) {
-				int x = event.getMousePos().getXi() / tileSize;
-				int y = event.getMousePos().getYi() / tileSize;
+				int x = event.getMousePos().getXi() / tileSize - 8;
+				int y = event.getMousePos().getYi() / tileSize - 8;
 				if (x == prevX && y == prevY) return;
 				else {
 					prevX = x;
@@ -246,8 +247,6 @@ public class GuiCrane extends GuiBase {
 				}
 
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
-
-				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width + 1) return;
 
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
@@ -267,11 +266,9 @@ public class GuiCrane extends GuiBase {
 			if (event.getButton() != EnumMouseButton.MIDDLE) {
 
 				if (!event.getComponent().getMouseOver()) return;
-				double x = event.getMousePos().getXi() / tileSize;
-				double y = event.getMousePos().getYi() / tileSize;
+				double x = (event.getMousePos().getXi() / tileSize);
+				double y = (event.getMousePos().getYi() / tileSize);
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
-
-				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width + 1) return;
 
 				if (selected != null) {
 					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();

@@ -15,6 +15,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.awt.*;
 import java.util.HashSet;
@@ -39,6 +41,7 @@ public class PacketShowCraneParticles extends PacketBase {
 	}
 
 	@Override
+	@SideOnly(Side.CLIENT)
 	public void handle(MessageContext messageContext) {
 		World world = Minecraft.getMinecraft().world;
 

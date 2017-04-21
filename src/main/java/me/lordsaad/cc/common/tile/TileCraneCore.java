@@ -181,6 +181,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 				}
 			}
 			markDirty();
+			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 
 		} else if (transitionArmToOrigin) {
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
@@ -207,6 +208,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 				}
 			}
 			markDirty();
+			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		} else if (!queue.isEmpty()) {
 			nextPair = queue.pop();
 
@@ -256,6 +258,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 			worldTime = world.getTotalWorldTime();
 
 			markDirty();
+			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		}
 	}
 
