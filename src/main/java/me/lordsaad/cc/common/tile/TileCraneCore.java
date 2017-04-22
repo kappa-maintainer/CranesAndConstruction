@@ -75,7 +75,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	public IBlockState craneArmSample;
 
-	@SaveMethodGetter(saveName = "craneArmSample")
+	@SaveMethodGetter(saveName = "craneArmSample_saver")
 	public NBTTagCompound craneArmSampleGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
 		if (craneArmSample == null) return nbt;
@@ -83,12 +83,12 @@ public class TileCraneCore extends TileMod implements ITickable {
 		return nbt;
 	}
 
-	@SaveMethodSetter(saveName = "craneArmSample")
+	@SaveMethodSetter(saveName = "craneArmSample_saver")
 	public void craneArmSampleSetter(NBTTagCompound nbt) {
 		craneArmSample = NBTUtil.readBlockState(nbt);
 	}
 
-	@SaveMethodGetter(saveName = "lastKnownDefaultPair")
+	@SaveMethodGetter(saveName = "lastKnownDefaultPair_saver")
 	public NBTTagCompound lastKnownDefaultPairGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
 		if (lastKnownDefaultPair == null) return nbt;
@@ -97,12 +97,12 @@ public class TileCraneCore extends TileMod implements ITickable {
 		return nbt;
 	}
 
-	@SaveMethodSetter(saveName = "lastKnownDefaultPair")
+	@SaveMethodSetter(saveName = "lastKnownDefaultPair_saver")
 	public void lastKnownDefaultPairSetter(NBTTagCompound nbt) {
 		lastKnownDefaultPair = new Pair<>(NBTUtil.getPosFromTag(nbt.getCompoundTag("block_pos")), EnumFacing.getFront(nbt.getInteger("facing")));
 	}
 
-	@SaveMethodGetter(saveName = "nextPair")
+	@SaveMethodGetter(saveName = "nextPair_saver")
 	public NBTTagCompound nextPairGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
 		if (nextPair == null) return nbt;
@@ -111,12 +111,12 @@ public class TileCraneCore extends TileMod implements ITickable {
 		return nbt;
 	}
 
-	@SaveMethodSetter(saveName = "nextPair")
+	@SaveMethodSetter(saveName = "nextPair_saver")
 	public void nextPairSetter(NBTTagCompound nbt) {
 		nextPair = new Pair<>(NBTUtil.readBlockState(nbt), NBTUtil.getPosFromTag(nbt.getCompoundTag("block_pos")));
 	}
 
-	@SaveMethodGetter(saveName = "queue")
+	@SaveMethodGetter(saveName = "queue_saver")
 	public NBTTagCompound queueGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
 		if (queue.isEmpty()) return nbt;
@@ -132,7 +132,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 		return nbt;
 	}
 
-	@SaveMethodSetter(saveName = "queue")
+	@SaveMethodSetter(saveName = "queue_saver")
 	public void queueSetter(NBTTagCompound nbt) {
 		queue.clear();
 		NBTTagList list = nbt.getTagList("list", Constants.NBT.TAG_COMPOUND);

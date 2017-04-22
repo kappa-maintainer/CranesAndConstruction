@@ -30,7 +30,7 @@ public class PacketSendBlockToCrane extends PacketBase {
 		this.pair = pair;
 	}
 
-	@SaveMethodGetter(saveName = "pair")
+	@SaveMethodGetter(saveName = "pair_saver")
 	public NBTTagCompound nextPairGetter() {
 		NBTTagCompound nbt = new NBTTagCompound();
 		if (pair == null) return nbt;
@@ -39,7 +39,7 @@ public class PacketSendBlockToCrane extends PacketBase {
 		return nbt;
 	}
 
-	@SaveMethodSetter(saveName = "pair")
+	@SaveMethodSetter(saveName = "pair_saver")
 	public void nextPairSetter(NBTTagCompound nbt) {
 		pair = new Pair<>(NBTUtil.readBlockState(nbt), NBTUtil.getPosFromTag(nbt.getCompoundTag("block_pos")));
 	}
