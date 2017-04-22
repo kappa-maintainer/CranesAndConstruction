@@ -146,6 +146,8 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	@Override
 	public void update() {
+		if (world.isRemote) return;
+
 		if (transitionArm) {
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
@@ -154,7 +156,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 				currentYaw = destYaw;
 				transitionArm = false;
 
-				if (nextPair != null && !world.isRemote) {
+				if (nextPair != null) {
 					EntityFallingBlock block = new EntityFallingBlock(world, nextPair.getSecond().getX() + 0.5, nextPair.getSecond().getY(), nextPair.getSecond().getZ() + 0.5, nextPair.getFirst());
 					block.fallTime = 2;
 					world.spawnEntity(block);

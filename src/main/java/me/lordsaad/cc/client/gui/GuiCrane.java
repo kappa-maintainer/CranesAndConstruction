@@ -14,11 +14,9 @@ import com.teamwizardry.librarianlib.features.math.Vec2d;
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.librarianlib.features.sprite.Sprite;
 import com.teamwizardry.librarianlib.features.sprite.Texture;
-import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.PosUtils;
-import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
-import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
+import me.lordsaad.cc.common.network.PacketSyncBlockBuild;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
@@ -34,6 +32,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.world.World;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -44,25 +43,24 @@ import java.util.HashSet;
  */
 public class GuiCrane extends GuiBase {
 
+	private static final Texture textureBackground = new Texture(new ResourceLocation(CCMain.MOD_ID, "textures/gui/crane_gui.png"));
+	private static final Sprite spriteBackground = textureBackground.getSprite("bg", 245, 256);
+	private static final Sprite tileSelector = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select.png"));
+	private static final Sprite tileSelector2 = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select_2.png"));
 	private static Minecraft mc = Minecraft.getMinecraft();
-	Texture textureBackground = new Texture(new ResourceLocation(CCMain.MOD_ID, "textures/gui/crane_gui.png"));
-	Sprite spriteBackground = textureBackground.getSprite("bg", 245, 256);
-	Sprite tileSelector = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select.png"));
-	Sprite tileSelector2 = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/tile_select_2.png"));
-	Sprite boxSprite = new Sprite(new ResourceLocation(CCMain.MOD_ID, "textures/gui/box.png"));
-	private double tick = 0;
-	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
 	private ComponentStack selected;
 	private ComponentSprite selectionRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 	private ComponentSprite hoverRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 
+	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
+
 	private Vec2d offset, from;
+
+	private double tick = 0;
 	private int prevX = 0, prevY = 0;
+	private int tileSize = 16;
 
 	private int[] vbocache1 = null, vbocache2 = null;
-
-	private double zoom = 1;
-	private int tileSize = 16;
 
 	public GuiCrane(BlockPos pos) {
 		super(490, 512);
@@ -89,6 +87,9 @@ public class GuiCrane extends GuiBase {
 
 		int extraHeight = ((highestBlock == null || craneSeat == null) ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
 
+		blocks.clear();
+		vbocache2 = null;
+		vbocache1 = null;
 		for (int i = -width; i < width; i++)
 			for (int j = -width; j < width; j++)
 				for (int k = -height - extraHeight; k < extraHeight; k++) {
@@ -188,20 +189,18 @@ public class GuiCrane extends GuiBase {
 			VertexBuffer buffer = tes.getBuffer();
 			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-			if (vbocache1 == null) { // if there is no cache, create one
-				buffer.begin(7, DefaultVertexFormats.BLOCK); // init the buffer with the settings
+			if (vbocache1 == null) {
+				buffer.begin(7, DefaultVertexFormats.BLOCK);
 
 				for (IBlockState state : blocks.keySet())
 					for (BlockPos pos1 : blocks.get(state))
 						dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
 
-				vbocache1 = ClientUtilMethods.createCacheArrayAndReset(buffer); // cache your values
+				vbocache1 = ClientUtilMethods.createCacheArrayAndReset(buffer);
 			}
 
-			// once that’s done, draw the cache
 			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 			GlStateManager.scale(tileSize, tileSize, tileSize);
-			//GlStateManager.translate(-centerPos.x, -centerPos.y, -centerPos.z);
 
 			buffer.begin(7, DefaultVertexFormats.BLOCK);
 			buffer.addVertexData(vbocache1);
@@ -247,12 +246,15 @@ public class GuiCrane extends GuiBase {
 				}
 
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
+				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width) return;
 
 				if (selected != null) {
-					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
-					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
-					if (!mc.player.isCreative())
-						PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
+					ItemStack stack = selected.getStack().getValue(selected);
+					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
+					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) return;
+
+					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block));
+
 				}
 			} else {
 				if (from != null) {
@@ -270,11 +272,13 @@ public class GuiCrane extends GuiBase {
 				double y = (event.getMousePos().getYi() / tileSize);
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
 
+				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width) return;
 				if (selected != null) {
-					ItemBlock itemBlock = (ItemBlock) selected.getStack().getValue(selected).getItem();
-					PacketHandler.NETWORK.sendToServer(new PacketSendBlockToCrane(pos, new Pair<>(itemBlock.block.getDefaultState(), block)));
-					if (!mc.player.isCreative())
-						PacketHandler.NETWORK.sendToServer(new PacketReduceStackFromPlayer(mc.player.inventory.getSlotFor(selected.getStack().getValue(selected))));
+					ItemStack stack = selected.getStack().getValue(selected);
+					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
+					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) return;
+
+					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block));
 				}
 			} else {
 				if (offset == null) from = event.getMousePos();
@@ -323,5 +327,17 @@ public class GuiCrane extends GuiBase {
 	@Override
 	public boolean doesGuiPauseGame() {
 		return false;
+	}
+
+	public BlockPos getHighestBlock(World world, BlockPos pos) {
+		BlockPos.MutableBlockPos highest = new BlockPos.MutableBlockPos(pos.getX(), 255, pos.getZ());
+		IBlockState stateHighest = world.getBlockState(highest);
+		while (world.isAirBlock(highest) || stateHighest.getMaterial().isLiquid()) {
+			if (highest.getY() <= 0) break;
+			highest.move(EnumFacing.DOWN);
+			stateHighest = world.getBlockState(highest);
+		}
+
+		return highest;
 	}
 }

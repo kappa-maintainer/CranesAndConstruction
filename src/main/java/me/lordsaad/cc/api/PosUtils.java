@@ -1,6 +1,7 @@
 package me.lordsaad.cc.api;
 
 import kotlin.Pair;
+import me.lordsaad.cc.common.tile.TileCraneCore;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -92,7 +93,9 @@ public class PosUtils {
 		if (blocks.contains(posUp))
 			return blocks; // RECURSION SAFETY CHECK. Should never happen unless something goes really really bad
 
-		if (stateUp.getBlock() != ModBlocks.CRANE_CORE && stateUp.getBlock() != ModBlocks.CRANE_BASE) return blocks;
+		if (stateUp.getBlock() != ModBlocks.CRANE_CORE && stateUp.getBlock() != ModBlocks.CRANE_BASE) {
+			return blocks;
+		}
 
 		return getCraneVerticalPole(world, posUp, false, blocks);
 	}
@@ -102,10 +105,23 @@ public class PosUtils {
 		HashSet<BlockPos> blocks = getCraneVerticalPole(world, pos, true, new HashSet<>());
 		if (blocks == null) return null;
 
+		BlockPos seat = findCraneSeat(world, pos);
+		if (seat != null) {
+			TileCraneCore tile = (TileCraneCore) world.getTileEntity(seat);
+			if (tile != null) {
+				if (tile.transitionArm || tile.transitionArmToOrigin) {
+					return new Pair<>(tile.originalArmPos, tile.originalDirection);
+				}
+			}
+		}
+
 		BlockPos horizontalCenter = null;
+		Pair<BlockPos, EnumFacing> pair = null;
 		for (BlockPos polePos : blocks) {
 			for (EnumFacing side : EnumFacing.HORIZONTALS) {
+				if (!world.isBlockLoaded(polePos.offset(side))) break;
 				IBlockState state = world.getBlockState(polePos.offset(side));
+
 				if (state.getBlock() == ModBlocks.CRANE_BASE || state.getBlock() == ModBlocks.CRANE_CORE) {
 					horizontalCenter = polePos;
 					break;
@@ -115,7 +131,6 @@ public class PosUtils {
 
 		if (horizontalCenter == null) return null;
 
-		Pair<BlockPos, EnumFacing> pair = null;
 		for (EnumFacing facing : EnumFacing.HORIZONTALS) {
 			IBlockState state = world.getBlockState(horizontalCenter.offset(facing));
 			if (state.getBlock() == ModBlocks.CRANE_BASE || state.getBlock() == ModBlocks.CRANE_CORE) {
@@ -134,6 +149,7 @@ public class PosUtils {
 		BlockPos frontPos = pos.offset(direction);
 		if (blocks.contains(frontPos)) return blocks;
 
+		if (!world.isBlockLoaded(frontPos)) return blocks;
 		IBlockState frontState = world.getBlockState(frontPos);
 		if (frontState.getBlock() == ModBlocks.CRANE_BASE || frontState.getBlock() == ModBlocks.CRANE_CORE) {
 			return getCraneHorizontalPole(world, frontPos, direction, blocks);

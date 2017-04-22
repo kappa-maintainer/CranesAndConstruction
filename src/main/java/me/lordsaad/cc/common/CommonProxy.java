@@ -1,9 +1,8 @@
 package me.lordsaad.cc.common;
 
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import me.lordsaad.cc.common.network.PacketReduceStackFromPlayer;
-import me.lordsaad.cc.common.network.PacketSendBlockToCrane;
 import me.lordsaad.cc.common.network.PacketShowCraneParticles;
+import me.lordsaad.cc.common.network.PacketSyncBlockBuild;
 import me.lordsaad.cc.init.ModBlocks;
 import me.lordsaad.cc.init.ModTab;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -23,8 +22,7 @@ public class CommonProxy {
 
 		CommonEventHandler.INSTANCE.getClass();
 
-		PacketHandler.register(PacketSendBlockToCrane.class, Side.SERVER);
-		PacketHandler.register(PacketReduceStackFromPlayer.class, Side.SERVER);
+		PacketHandler.register(PacketSyncBlockBuild.class, Side.SERVER);
 		PacketHandler.register(PacketShowCraneParticles.class, Side.CLIENT);
 	}
 

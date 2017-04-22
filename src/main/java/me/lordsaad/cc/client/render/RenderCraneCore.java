@@ -76,7 +76,6 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			for (int i = 1; i < te.armLength; i++) {
 				BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection, i);
 				GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
-				//Minecraft.getMinecraft().getRenderItem().renderItem(new ItemStack(ModBlocks.CRANE_BASE), ItemCameraTransforms.TransformType.NONE);
 				Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneBase, 1.0F, 1, 1, 1);
 				GlStateManager.translate(-posOffset.getX(), 0, -posOffset.getZ());
 			}
