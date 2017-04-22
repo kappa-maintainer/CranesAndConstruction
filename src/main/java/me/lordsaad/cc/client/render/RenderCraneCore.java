@@ -5,6 +5,7 @@ import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
@@ -63,14 +64,19 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 			GlStateManager.enableBlend();
 			GlStateManager.enableLighting();
 			GlStateManager.enableRescaleNormal();
+			GlStateManager.color(1, 1, 1);
+
+			GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
 
 			GlStateManager.translate(x + 0.5, y + te.originalArmPos.getY() - te.getPos().getY(), z + 0.5);
 			GlStateManager.rotate(yaw, 0, 1, 0);
 			GlStateManager.translate(-0.5, 0, -0.5);
+			bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
 			for (int i = 1; i < te.armLength; i++) {
 				BlockPos posOffset = BlockPos.ORIGIN.offset(te.originalDirection, i);
 				GlStateManager.translate(posOffset.getX(), 0, posOffset.getZ());
+				//Minecraft.getMinecraft().getRenderItem().renderItem(new ItemStack(ModBlocks.CRANE_BASE), ItemCameraTransforms.TransformType.NONE);
 				Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer().renderModelBrightnessColor(modelCraneBase, 1.0F, 1, 1, 1);
 				GlStateManager.translate(-posOffset.getX(), 0, -posOffset.getZ());
 			}
