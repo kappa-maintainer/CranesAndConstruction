@@ -1,17 +1,12 @@
 package me.lordsaad.cc;
 
 import com.teamwizardry.librarianlib.core.LibrarianLog;
-import com.teamwizardry.librarianlib.features.base.ModCreativeTab;
 import me.lordsaad.cc.common.CommonProxy;
-import me.lordsaad.cc.init.ModBlocks;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-
-import javax.annotation.Nonnull;
 
 @Mod(
 		modid = CCMain.MOD_ID,
@@ -33,20 +28,6 @@ public class CCMain {
 
 	@Mod.Instance
 	public static CCMain instance;
-
-	public static ModCreativeTab tab = new ModCreativeTab(MOD_NAME) {
-		@Override
-		@Nonnull
-		public ItemStack getTabIconItem() {
-			return new ItemStack(ModBlocks.CRANE_BASE);
-		}
-
-		@Override
-		@Nonnull
-		public ItemStack getIconStack() {
-			return new ItemStack(ModBlocks.CRANE_BASE);
-		}
-	};
 
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
