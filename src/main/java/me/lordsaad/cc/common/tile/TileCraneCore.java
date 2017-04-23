@@ -36,7 +36,7 @@ import java.util.HashSet;
 @TileRegister("crane_core")
 public class TileCraneCore extends TileMod implements ITickable {
 
-	public Deque<Pair<IBlockState, BlockPos>> queue = new ArrayDeque<>();
+	public Deque<Pair<IBlockState, BlockPos>> queue = new ArrayDeque<>(256);
 
 	@Save
 	public float prevYaw = 0;

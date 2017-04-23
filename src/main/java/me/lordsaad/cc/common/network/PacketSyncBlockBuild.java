@@ -4,10 +4,8 @@ import com.mojang.authlib.GameProfile;
 import com.teamwizardry.librarianlib.features.network.PacketBase;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import kotlin.Pair;
-import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -18,7 +16,6 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import java.util.HashSet;
 import java.util.UUID;
 
 /**
@@ -34,26 +31,30 @@ public class PacketSyncBlockBuild extends PacketBase {
 	private int slot;
 	@Save
 	private BlockPos destination;
+	@Save
+	private int width;
 
 	public PacketSyncBlockBuild() {
 	}
 
-	public PacketSyncBlockBuild(BlockPos crane, int slot, BlockPos destination) {
+	public PacketSyncBlockBuild(BlockPos crane, int slot, BlockPos destination, int width) {
 		this.crane = crane;
 		this.slot = slot;
 		this.destination = destination;
+		this.width = width;
 	}
 
 	@Override
 	public void handle(MessageContext messageContext) {
 		World world = messageContext.getServerHandler().playerEntity.world;
 
-		int width;
-		HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(world, crane);
-		if (horizontal == null) return;
-		if (horizontal.isEmpty()) return;
-		else width = horizontal.size() - 1;
-
+		//int width;
+		//HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(world, crane);
+		//if (horizontal == null) return;
+		//if (horizontal.isEmpty()) return;
+		//else width = horizontal.size() - 1;
+//
+		//Minecraft.getMinecraft().player.sendChatMessage(width + " - " + ((int)destination.getDistance(crane.getX(), crane.getY(), crane.getZ())));
 		if (destination.getDistance(crane.getX(), crane.getY(), crane.getZ()) > width) return;
 
 		if (!world.isBlockLoaded(destination)) return;
@@ -79,10 +80,9 @@ public class PacketSyncBlockBuild extends PacketBase {
 		IBlockState state = world.getBlockState(temp);
 		world.setBlockToAir(temp);
 
-		if (!messageContext.getServerHandler().playerEntity.capabilities.isCreativeMode)
+		if (!messageContext.getServerHandler().playerEntity.isCreative())
 			itemBlock.shrink(1);
 
-		Minecraft.getMinecraft().player.sendChatMessage(UUID.randomUUID() + "");
 		tile.queue.add(new Pair<>(state, destination));
 		tile.markDirty();
 	}

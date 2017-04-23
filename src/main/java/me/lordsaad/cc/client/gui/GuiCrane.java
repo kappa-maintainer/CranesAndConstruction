@@ -62,6 +62,8 @@ public class GuiCrane extends GuiBase {
 
 	private int[] vbocache1 = null, vbocache2 = null;
 
+	private BlockPos previousBlock = null;
+
 	public GuiCrane(BlockPos pos) {
 		super(490, 512);
 
@@ -83,7 +85,10 @@ public class GuiCrane extends GuiBase {
 		if (vertical == null) height = 0;
 		else height = vertical.size() - 1;
 
-		if (height == 0 || width == 0) return;
+		if (height == 0 || width == 0) {
+			mc.player.closeScreen();
+			return;
+		}
 
 		int extraHeight = ((highestBlock == null || craneSeat == null) ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
 
@@ -180,10 +185,10 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.enableBlend();
 			GlStateManager.enableLighting();
 
-			GlStateManager.translate(133, 133, 200);
+			GlStateManager.translate(133, 133, 800);
 			if (offset != null)
 				GlStateManager.translate(-offset.getX(), -offset.getY(), 0);
-			GlStateManager.rotate(-90, 1, 0, 0);
+			GlStateManager.rotate(90, 1, 0, 0);
 
 			Tessellator tes = Tessellator.getInstance();
 			VertexBuffer buffer = tes.getBuffer();
@@ -246,6 +251,10 @@ public class GuiCrane extends GuiBase {
 				}
 
 				BlockPos block = pos.add(new BlockPos(x, 0, y));
+
+				if (previousBlock != null && previousBlock.toLong() == block.toLong()) return;
+				else previousBlock = block;
+
 				if (block.getDistance(pos.getX(), pos.getY(), pos.getZ()) > width) return;
 
 				if (selected != null) {
@@ -253,7 +262,7 @@ public class GuiCrane extends GuiBase {
 					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
 					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) return;
 
-					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block));
+					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block, width));
 
 				}
 			} else {
@@ -278,7 +287,7 @@ public class GuiCrane extends GuiBase {
 					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
 					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) return;
 
-					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block));
+					PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block, width));
 				}
 			} else {
 				if (offset == null) from = event.getMousePos();
