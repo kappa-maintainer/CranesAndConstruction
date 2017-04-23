@@ -28,15 +28,18 @@ import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.EnumMap;
 
 /**
  * Created by LordSaad.
@@ -52,7 +55,8 @@ public class GuiCrane extends GuiBase {
 	private ComponentSprite selectionRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 	private ComponentSprite hoverRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 
-	private HashMultimap<IBlockState, BlockPos> blocks = HashMultimap.create();
+	private EnumMap<BlockRenderLayer, HashMultimap<IBlockState, BlockPos>> blocks = new EnumMap<>(BlockRenderLayer.class);
+	private EnumMap<BlockRenderLayer, int[]> vboCaches = new EnumMap<>(BlockRenderLayer.class);
 
 	private Vec2d offset, from;
 
@@ -94,13 +98,26 @@ public class GuiCrane extends GuiBase {
 					int sky = mc.world.getLightFromNeighborsFor(EnumSkyBlock.SKY, pos1);
 					int block = mc.world.getLightFromNeighborsFor(EnumSkyBlock.BLOCK, pos1);
 					boolean surrounded = true;
-					for (EnumFacing facing : EnumFacing.VALUES)
-						if (mc.world.isAirBlock(pos1.offset(facing))) {
+					for (EnumFacing facing : EnumFacing.VALUES) {
+						IBlockState offsetState = mc.world.getBlockState(pos1.offset(facing));
+						if (mc.world.isAirBlock(pos1.offset(facing))
+								|| !offsetState.isFullBlock()
+								|| !offsetState.isOpaqueCube()
+								|| !offsetState.isBlockNormalCube()
+								|| !offsetState.isNormalCube()
+								|| offsetState.isTranslucent()
+								|| offsetState.getMaterial().isLiquid()
+								|| !offsetState.getMaterial().isSolid()) {
 							surrounded = false;
 							break;
 						}
+					}
 					if (Math.max(sky, block) >= 15 || !surrounded) {
-						blocks.put(state, pos1.subtract(pos));
+						BlockRenderLayer layer = state.getBlock().getBlockLayer();
+						HashMultimap<IBlockState, BlockPos> multimap = blocks.get(layer);
+						if (multimap == null) multimap = HashMultimap.create();
+						multimap.put(state, pos1.subtract(pos));
+						blocks.put(layer, multimap);
 					}
 				}
 
@@ -126,6 +143,8 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.pushMatrix();
 			GlStateManager.disableCull();
 
+			GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+			GlStateManager.shadeModel(GL11.GL_SMOOTH);
 			GlStateManager.translate(150, 75, 500);
 			GlStateManager.rotate(180, 1, 0, 0);
 			GlStateManager.rotate(horizontalAngle, -1, 0, 0);
@@ -133,27 +152,46 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.translate(tileSideSize, tileSideSize, tileSideSize);
 			GlStateManager.scale(tileSideSize, tileSideSize, tileSideSize);
 
-			Tessellator tes = Tessellator.getInstance();
-			VertexBuffer buffer = tes.getBuffer();
-			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
-
-			if (vbocache2 == null) { // if there is no cache, create one
-				buffer.begin(7, DefaultVertexFormats.BLOCK); // init the buffer with the settings
-
-				for (IBlockState state2 : blocks.keySet())
-					for (BlockPos pos2 : blocks.get(state2))
-						dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state2), state2, pos2, buffer, false, 0);
-
-				vbocache2 = ClientUtilMethods.createCacheArrayAndReset(buffer); // cache your values
-			}
-
-			// once that’s done, draw the cache
 			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+			for (BlockRenderLayer layer : blocks.keySet()) {
+				switch (layer) {
+					case SOLID: {
+						GlStateManager.enableAlpha();
+						break;
+					}
+					case CUTOUT_MIPPED: {
+						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
+						break;
+					}
+					case CUTOUT: {
+						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
+						break;
+					}
+					case TRANSLUCENT: {
+						break;
+					}
+				}
 
-			buffer.begin(7, DefaultVertexFormats.BLOCK);
-			buffer.addVertexData(vbocache2);
+				Tessellator tes = Tessellator.getInstance();
+				VertexBuffer buffer = tes.getBuffer();
+				BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-			tes.draw();
+				if (vboCaches.get(layer) == null) {
+					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+
+					for (IBlockState state2 : blocks.get(layer).keySet())
+						for (BlockPos pos2 : blocks.get(layer).get(state2)) {
+							dispatcher.renderBlock(state2, pos2, mc.world, buffer);
+						}
+
+					vboCaches.put(layer, ClientUtilMethods.createCacheArrayAndReset(buffer));
+				}
+
+				buffer.begin(7, DefaultVertexFormats.BLOCK);
+				buffer.addVertexData(vboCaches.get(layer));
+
+				tes.draw();
+			}
 
 			GlStateManager.popMatrix();
 		});
@@ -170,36 +208,58 @@ public class GuiCrane extends GuiBase {
 		topView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 			GlStateManager.pushMatrix();
 			GlStateManager.disableCull();
-			GlStateManager.enableAlpha();
-			GlStateManager.enableBlend();
-			GlStateManager.enableLighting();
+			GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+			GlStateManager.shadeModel(GL11.GL_SMOOTH);
 
 			GlStateManager.translate(133, 133, 800);
+			GlStateManager.rotate(90, 1, 0, 0);
 			if (offset != null)
 				GlStateManager.translate(-offset.getX(), -offset.getY(), 0);
-			GlStateManager.rotate(90, 1, 0, 0);
-
-			Tessellator tes = Tessellator.getInstance();
-			VertexBuffer buffer = tes.getBuffer();
-			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
-
-			if (vbocache1 == null) {
-				buffer.begin(7, DefaultVertexFormats.BLOCK);
-
-				for (IBlockState state : blocks.keySet())
-					for (BlockPos pos1 : blocks.get(state))
-						dispatcher.getBlockModelRenderer().renderModelFlat(mc.world, dispatcher.getModelForState(state), state, pos1, buffer, false, 0);
-
-				vbocache1 = ClientUtilMethods.createCacheArrayAndReset(buffer);
-			}
+			//GlStateManager.rotate(90, 1, 0, 0);
+			//if (offset != null)
+			//	GlStateManager.rotate((float) offset.length(), offset.getXf(), 0, offset.getYf());
 
 			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-			GlStateManager.scale(tileSize, tileSize, tileSize);
+			for (BlockRenderLayer layer : blocks.keySet()) {
+				switch (layer) {
+					case SOLID: {
+						GlStateManager.enableAlpha();
+						break;
+					}
+					case CUTOUT_MIPPED: {
+						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
+						break;
+					}
+					case CUTOUT: {
+						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
+						break;
+					}
+					case TRANSLUCENT: {
+						break;
+					}
+				}
 
-			buffer.begin(7, DefaultVertexFormats.BLOCK);
-			buffer.addVertexData(vbocache1);
+				Tessellator tes = Tessellator.getInstance();
+				VertexBuffer buffer = tes.getBuffer();
+				BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-			tes.draw();
+				if (vboCaches.get(layer) == null) {
+					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+
+					for (IBlockState state2 : blocks.get(layer).keySet())
+						for (BlockPos pos2 : blocks.get(layer).get(state2)) {
+							dispatcher.renderBlock(state2, pos2, mc.world, buffer);
+						}
+
+					vboCaches.put(layer, ClientUtilMethods.createCacheArrayAndReset(buffer));
+				}
+
+				GlStateManager.scale(tileSize, tileSize, tileSize);
+				buffer.begin(7, DefaultVertexFormats.BLOCK);
+				buffer.addVertexData(vboCaches.get(layer));
+
+				tes.draw();
+			}
 
 			GlStateManager.popMatrix();
 
