@@ -15,8 +15,9 @@ import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.librarianlib.features.sprite.Sprite;
 import com.teamwizardry.librarianlib.features.sprite.Texture;
 import me.lordsaad.cc.CCMain;
-import me.lordsaad.cc.api.PosUtils;
+import me.lordsaad.cc.api.CraneManager;
 import me.lordsaad.cc.common.network.PacketSyncBlockBuild;
+import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
@@ -36,7 +37,6 @@ import net.minecraft.world.World;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashSet;
 
 /**
  * Created by LordSaad.
@@ -71,24 +71,13 @@ public class GuiCrane extends GuiBase {
 		hoverRect.setVisible(false);
 		getMainComponents().add(selectionRect, hoverRect);
 
-		int width;
-		int height;
+		CraneManager manager = new CraneManager(mc.world, pos);
+		TileCraneCore core = (TileCraneCore) mc.world.getTileEntity(pos);
 
-		HashSet<BlockPos> vertical = PosUtils.getCraneVerticalPole(mc.world, pos, true, new HashSet<>());
-		HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(mc.world, pos);
-		BlockPos highestBlock = PosUtils.getHighestCranePoint(vertical);
-		BlockPos craneSeat = PosUtils.findCraneSeat(mc.world, pos);
+		int width = manager.width == 0 ? (core == null ? 10 : core.armLength) : manager.width;
+		int height = manager.height == 0 ? 10 : manager.height;
 
-		if (horizontal == null) width = 0;
-		else width = horizontal.size() - 1;
-
-		if (vertical == null) height = 0;
-		else height = vertical.size() - 1;
-
-		if (height == 0 || width == 0) {
-			mc.player.closeScreen();
-			return;
-		}
+		BlockPos highestBlock = manager.highestBlock, craneSeat = manager.seat;
 
 		int extraHeight = ((highestBlock == null || craneSeat == null) ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
 

@@ -2,8 +2,8 @@ package me.lordsaad.cc.common.block;
 
 import com.teamwizardry.librarianlib.features.base.block.BlockModContainer;
 import com.teamwizardry.librarianlib.features.network.PacketHandler;
-import kotlin.Pair;
 import me.lordsaad.cc.CCMain;
+import me.lordsaad.cc.api.CraneManager;
 import me.lordsaad.cc.api.ILadder;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.api.SittingUtil;
@@ -29,8 +29,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import java.awt.*;
-import java.util.HashSet;
 
 /**
  * Created by LordSaad.
@@ -68,42 +66,28 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
 		super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
 		if (!worldIn.isRemote)
-			PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
+			PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos));
 	}
 
 	@Override
 	public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing heldItem, float side, float hitX, float hitY) {
 		ItemStack item = playerIn.getHeldItem(hand);
 		if (item.getItem() == new ItemStack(ModBlocks.CRANE_BASE).getItem()) {
-			if (PosUtils.isBlockAtCraneBase(worldIn, pos)) {
-				HashSet<BlockPos> vertical = PosUtils.getCraneVerticalPole(worldIn, pos, true, new HashSet<>());
-				HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(worldIn, pos);
+			CraneManager manager = new CraneManager(worldIn, pos);
 
-				if (vertical == null) return false;
-				HashSet<BlockPos> complete = new HashSet<>();
-				complete.addAll(vertical);
-				if (horizontal != null)
-					complete.addAll(horizontal);
-				HashSet<Pair<IBlockState, BlockPos>> structure = new HashSet<>();
-				for (BlockPos block : complete) {
-					IBlockState oldState = worldIn.getBlockState(block);
-					structure.add(new Pair<>(oldState, block));
-					if (block.toLong() != pos.toLong())
-						worldIn.setBlockToAir(block);
-				}
-
-				for (Pair<IBlockState, BlockPos> pair : structure)
-					worldIn.setBlockState(pair.getSecond().up(), pair.getFirst());
+			if (manager.bottomBlock != null && manager.bottomBlock.getY() == pos.getY()) {
+				manager.elongateCrane(pos);
 
 				if (!playerIn.isCreative()) item.setCount(item.getCount() - 1);
 
 				if (!worldIn.isRemote)
-					PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
+					PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos));
 				return true;
-			}
 
+			}
 		} else {
-			BlockPos seat = PosUtils.findCraneSeat(worldIn, pos);
+			CraneManager manager = new CraneManager(worldIn, pos);
+			BlockPos seat = manager.seat;
 			if (seat != null) {
 				boolean seated = SittingUtil.seatPlayer(worldIn, seat, playerIn);
 				if (seated)
@@ -116,35 +100,21 @@ public class BlockCraneCore extends BlockModContainer implements ILadder {
 
 	@Override
 	public boolean removedByPlayer(IBlockState state, World world, BlockPos pos, EntityPlayer player, boolean willHarvest) {
+		if (!world.isRemote)
+			PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos));
+
 		if (player.isSneaking()) return super.removedByPlayer(state, world, pos, player, willHarvest);
-		HashSet<BlockPos> vertical = PosUtils.getCraneVerticalPole(world, pos, true, new HashSet<>());
-		HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(world, pos);
 
-		if (vertical != null) {
-			HashSet<BlockPos> complete = new HashSet<>();
-			complete.addAll(vertical);
-			if (horizontal != null)
-				complete.addAll(horizontal);
-			HashSet<Pair<IBlockState, BlockPos>> structure = new HashSet<>();
-			for (BlockPos block : complete) {
-				if (block.getY() <= pos.getY()) continue;
-				IBlockState oldState = world.getBlockState(block);
-				structure.add(new Pair<>(oldState, block));
-				if (block.toLong() != pos.toLong())
-					world.setBlockToAir(block);
-			}
+		CraneManager manager = new CraneManager(world, pos);
 
-			if (structure.isEmpty()) return super.removedByPlayer(state, world, pos, player, willHarvest);
-
-			for (Pair<IBlockState, BlockPos> pair : structure) {
-				world.setBlockState(pair.getSecond().down(), pair.getFirst(), 3);
-			}
-			if (!world.isRemote)
-				PacketHandler.NETWORK.sendToAll(new PacketShowCraneParticles(pos, Color.GREEN));
-			return false;
+		if (PosUtils.isPosInSet(pos, manager.arm)
+				|| manager.highestBlock != null && manager.highestBlock.getY() == pos.getY()
+				|| manager.bottomBlock == null) {
+			return super.removedByPlayer(state, world, pos, player, willHarvest);
 		}
+		manager.shrinkCrane(pos);
 
-		return super.removedByPlayer(state, world, pos, player, willHarvest);
+		return false;
 	}
 
 	@Override

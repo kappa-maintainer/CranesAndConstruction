@@ -8,7 +8,7 @@ import com.teamwizardry.librarianlib.features.particle.ParticleSpawner;
 import com.teamwizardry.librarianlib.features.particle.functions.InterpFadeInOut;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import me.lordsaad.cc.CCMain;
-import me.lordsaad.cc.api.PosUtils;
+import me.lordsaad.cc.api.CraneManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -19,7 +19,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.awt.*;
-import java.util.HashSet;
 
 /**
  * Created by LordSaad.
@@ -28,16 +27,12 @@ public class PacketShowCraneParticles extends PacketBase {
 
 	@Save
 	private BlockPos pos;
-	@Save
-	private Color color;
 
 	public PacketShowCraneParticles() {
 	}
 
-	public PacketShowCraneParticles(BlockPos pos, Color color) {
-
+	public PacketShowCraneParticles(BlockPos pos) {
 		this.pos = pos;
-		this.color = color;
 	}
 
 	@Override
@@ -45,16 +40,58 @@ public class PacketShowCraneParticles extends PacketBase {
 	public void handle(MessageContext messageContext) {
 		World world = Minecraft.getMinecraft().world;
 
-		HashSet<BlockPos> blocks = PosUtils.getCrane(world, pos, new HashSet<>());
-		if (blocks != null && !blocks.isEmpty())
-			for (BlockPos pos : blocks) {
-				ParticleBuilder glitter = new ParticleBuilder(10);
+		CraneManager manager = new CraneManager(world, pos);
+		if (!manager.pole.isEmpty())
+			for (BlockPos pos : manager.pole) {
+				ParticleBuilder glitter = new ParticleBuilder(20);
 				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
 				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
-				glitter.setColor(color);
+				glitter.setColor(Color.GREEN);
 				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 				glitter.setScale(2);
 				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).addVector(0.5, 0.5, 0.5)), 1);
 			}
+
+		if (!manager.arm.isEmpty()) {
+			for (BlockPos pos : manager.arm) {
+				ParticleBuilder glitter = new ParticleBuilder(20);
+				glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setColor(Color.BLUE);
+				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+				glitter.setScale(2);
+				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).addVector(0.5, 0.5, 0.5)), 1);
+			}
+		}
+
+		if (manager.armBlock != null) {
+			ParticleBuilder glitter = new ParticleBuilder(35);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.BLACK);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(5);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.armBlock).addVector(0.5, 0.5, 0.5)), 1);
+		}
+
+		if (manager.highestBlock != null) {
+			ParticleBuilder glitter = new ParticleBuilder(35);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.BLACK);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(5);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.highestBlock).addVector(0.5, 0.5, 0.5)), 1);
+		}
+
+		if (manager.bottomBlock != null) {
+			ParticleBuilder glitter = new ParticleBuilder(35);
+			glitter.setRenderNormalLayer(new ResourceLocation(CCMain.MOD_ID, "particles/sparkle_blurred"));
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setColor(Color.BLACK);
+			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
+			glitter.setScale(5);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.bottomBlock).addVector(0.5, 0.5, 0.5)), 1);
+		}
 	}
 }

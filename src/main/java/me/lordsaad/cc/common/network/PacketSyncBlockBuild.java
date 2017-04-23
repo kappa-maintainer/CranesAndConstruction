@@ -59,8 +59,8 @@ public class PacketSyncBlockBuild extends PacketBase {
 
 		if (!world.isBlockLoaded(destination)) return;
 
-		TileCraneCore tile = (TileCraneCore) world.getTileEntity(crane);
-		if (tile == null) return;
+		TileCraneCore core = (TileCraneCore) world.getTileEntity(crane);
+		if (core == null) return;
 
 		ItemStack itemBlock = messageContext.getServerHandler().playerEntity.inventory.getStackInSlot(slot);
 		BlockPos temp = new BlockPos(crane.getX(), 250, crane.getZ());
@@ -83,7 +83,7 @@ public class PacketSyncBlockBuild extends PacketBase {
 		if (!messageContext.getServerHandler().playerEntity.isCreative())
 			itemBlock.shrink(1);
 
-		tile.queue.add(new Pair<>(state, destination));
-		tile.markDirty();
+		core.queue.add(new Pair<>(state, destination));
+		core.markDirty();
 	}
 }

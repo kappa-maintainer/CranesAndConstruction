@@ -7,6 +7,7 @@ import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodGetter;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodSetter;
 import kotlin.Pair;
+import me.lordsaad.cc.api.CraneManager;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
 import net.minecraft.block.state.IBlockState;
@@ -28,7 +29,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashSet;
 
 /**
  * Created by LordSaad.
@@ -70,9 +70,6 @@ public class TileCraneCore extends TileMod implements ITickable {
 	@Save
 	public BlockPos handleTo;
 
-	@Nullable
-	public Pair<BlockPos, EnumFacing> lastKnownDefaultPair = null;
-
 	public IBlockState craneArmSample;
 
 	@SaveMethodGetter(saveName = "craneArmSample_saver")
@@ -86,20 +83,6 @@ public class TileCraneCore extends TileMod implements ITickable {
 	@SaveMethodSetter(saveName = "craneArmSample_saver")
 	public void craneArmSampleSetter(NBTTagCompound nbt) {
 		craneArmSample = NBTUtil.readBlockState(nbt);
-	}
-
-	@SaveMethodGetter(saveName = "lastKnownDefaultPair_saver")
-	public NBTTagCompound lastKnownDefaultPairGetter() {
-		NBTTagCompound nbt = new NBTTagCompound();
-		if (lastKnownDefaultPair == null) return nbt;
-		nbt.setTag("block_pos", NBTUtil.createPosTag(lastKnownDefaultPair.getFirst()));
-		nbt.setInteger("facing", lastKnownDefaultPair.getSecond().ordinal());
-		return nbt;
-	}
-
-	@SaveMethodSetter(saveName = "lastKnownDefaultPair_saver")
-	public void lastKnownDefaultPairSetter(NBTTagCompound nbt) {
-		lastKnownDefaultPair = new Pair<>(NBTUtil.getPosFromTag(nbt.getCompoundTag("block_pos")), EnumFacing.getFront(nbt.getInteger("facing")));
 	}
 
 	@SaveMethodGetter(saveName = "nextPair_saver")
@@ -198,28 +181,22 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 			if (nextPair == null) return;
 
-			HashSet<BlockPos> arm = PosUtils.getCraneHorizontalPole(world, pos);
-			HashSet<BlockPos> pole = PosUtils.getCraneVerticalPole(world, pos, true, new HashSet<>());
-			Pair<BlockPos, EnumFacing> defaultPair = PosUtils.getHorizontalOriginAndDirection(world, pos);
+			CraneManager manager = new CraneManager(world, pos);
 
-			if (arm != null) {
+			if (!manager.arm.isEmpty()) {
 				if (craneArmSample == null)
-					craneArmSample = world.getBlockState(arm.iterator().next());
-				if (armLength != arm.size())
-					armLength = arm.size();
+					craneArmSample = world.getBlockState(manager.arm.iterator().next());
+				if (armLength != manager.arm.size())
+					armLength = manager.arm.size();
 			}
 
-			if (defaultPair == null)
-				if (lastKnownDefaultPair == null) return;
-				else defaultPair = lastKnownDefaultPair;
-			else lastKnownDefaultPair = defaultPair;
+			if (originalArmPos == null && manager.armBlock == null) return;
+			else if (originalArmPos == null) originalArmPos = manager.armBlock;
 
-			originalArmPos = defaultPair.getFirst();
+			if (originalDirection == null && manager.direction == null) return;
+			else if (originalDirection == null) originalDirection = manager.direction;
 
-			originalDirection = defaultPair.getSecond();
-			if (originalDirection == null) return;
-
-			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(defaultPair.getSecond())));
+			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(originalDirection)));
 			Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
 			Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
 			Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
@@ -235,11 +212,10 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 			worldTime = world.getTotalWorldTime();
 
-			if (arm != null)
-				for (BlockPos blocks : arm) {
-					if (pole != null && pole.contains(blocks)) continue;
-					world.setBlockToAir(blocks);
-				}
+			if (!manager.arm.isEmpty())
+				for (BlockPos blocks : manager.arm)
+					if (!PosUtils.isPosInSet(blocks, manager.pole))
+						world.setBlockToAir(blocks);
 
 			markDirty();
 			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
