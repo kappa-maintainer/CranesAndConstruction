@@ -1,6 +1,7 @@
 package me.lordsaad.cc.common.network;
 
 import com.mojang.authlib.GameProfile;
+import com.teamwizardry.librarianlib.features.math.Vec2d;
 import com.teamwizardry.librarianlib.features.network.PacketBase;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import kotlin.Pair;
@@ -55,7 +56,9 @@ public class PacketSyncBlockBuild extends PacketBase {
 		//else width = horizontal.size() - 1;
 //
 		//Minecraft.getMinecraft().player.sendChatMessage(width + " - " + ((int)destination.getDistance(crane.getX(), crane.getY(), crane.getZ())));
-		if (destination.getDistance(crane.getX(), crane.getY(), crane.getZ()) > width) return;
+		double dist = new Vec2d(destination.getX(), destination.getZ()).add(0.5, 0.5).sub(new Vec2d(crane.getX(), crane.getZ()).add(0.5, 0.5)).length();
+
+		if (dist > width) return;
 
 		if (!world.isBlockLoaded(destination)) return;
 
