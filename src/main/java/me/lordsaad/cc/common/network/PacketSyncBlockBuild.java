@@ -47,7 +47,7 @@ public class PacketSyncBlockBuild extends PacketBase {
 
 	@Override
 	public void handle(MessageContext messageContext) {
-		World world = messageContext.getServerHandler().playerEntity.world;
+		World world = messageContext.getServerHandler().player.world;
 
 		//int width;
 		//HashSet<BlockPos> horizontal = PosUtils.getCraneHorizontalPole(world, crane);
@@ -65,7 +65,7 @@ public class PacketSyncBlockBuild extends PacketBase {
 		TileCraneCore core = (TileCraneCore) world.getTileEntity(crane);
 		if (core == null) return;
 
-		ItemStack itemBlock = messageContext.getServerHandler().playerEntity.inventory.getStackInSlot(slot);
+		ItemStack itemBlock = messageContext.getServerHandler().player.inventory.getStackInSlot(slot);
 		BlockPos temp = new BlockPos(crane.getX(), 250, crane.getZ());
 
 		FakePlayer player = new FakePlayer((WorldServer) world, profile);
@@ -83,7 +83,7 @@ public class PacketSyncBlockBuild extends PacketBase {
 		IBlockState state = world.getBlockState(temp);
 		world.setBlockToAir(temp);
 
-		if (!messageContext.getServerHandler().playerEntity.isCreative())
+		if (!messageContext.getServerHandler().player.isCreative())
 			itemBlock.shrink(1);
 
 		core.queue.add(new Pair<>(state, destination));

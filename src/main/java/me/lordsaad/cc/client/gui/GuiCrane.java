@@ -15,8 +15,10 @@ import com.teamwizardry.librarianlib.features.network.PacketHandler;
 import com.teamwizardry.librarianlib.features.sprite.Sprite;
 import com.teamwizardry.librarianlib.features.sprite.Texture;
 import me.lordsaad.cc.CCMain;
+import me.lordsaad.cc.api.AreaCacher;
 import me.lordsaad.cc.api.CraneChunkCache;
 import me.lordsaad.cc.api.CraneManager;
+import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.common.network.PacketSyncBlockBuild;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.block.state.IBlockState;
@@ -30,19 +32,19 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.ChunkCache;
-import net.minecraft.world.EnumSkyBlock;
-import net.minecraft.world.World;
+import net.minecraft.world.IBlockAccess;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.HashSet;
 
 /**
  * Created by LordSaad.
@@ -59,6 +61,7 @@ public class GuiCrane extends GuiBase {
 	private ComponentSprite hoverRect = new ComponentSprite(tileSelector, 0, 0, 32, 32);
 
 	private EnumMap<BlockRenderLayer, HashMultimap<IBlockState, BlockPos>> blocks = new EnumMap<>(BlockRenderLayer.class);
+	private HashSet<BlockPos> tempPosCache = new HashSet<>();
 	private EnumMap<BlockRenderLayer, int[]> vboCaches = new EnumMap<>(BlockRenderLayer.class);
 
 	private Vec2d offset, from;
@@ -66,10 +69,13 @@ public class GuiCrane extends GuiBase {
 	private double tick = 0;
 	private int prevX = 0, prevY = 0;
 	private int tileSize = 16;
-
-	private int[] vbocache1 = null, vbocache2 = null;
+	private int cacheTick = 0;
 
 	private BlockPos previousBlock = null;
+
+	private float animSideTickPassed = 0, animTickMax = 180, animTopTickPassed = 0;
+	private float animSideRotation, animTopRotation;
+	private boolean animDone = false;
 
 	public GuiCrane(BlockPos pos) {
 		super(490, 512);
@@ -88,53 +94,9 @@ public class GuiCrane extends GuiBase {
 
 		int extraHeight = ((highestBlock == null || craneSeat == null) ? 1 : Math.abs(highestBlock.getY() - craneSeat.getY()) + 1);
 
-		blocks.clear();
-		vbocache2 = null;
-		vbocache1 = null;
-		for (int i = -width; i < width; i++) {
-			for (int j = -width; j < width; j++) {
-				for (int k = -height - extraHeight; k < extraHeight; k++) {
-					BlockPos pos1 = new BlockPos(pos.getX() + i, pos.getY() + k, pos.getZ() + j);
-					if (mc.world.isAirBlock(pos1)) {
-						continue;
-					}
-
-					double dist = new Vec2d(pos1.getX(), pos1.getZ()).add(0.5, 0.5).sub(new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5)).length();
-
-					if (dist > width) continue;
-
-					IBlockState state = mc.world.getBlockState(pos1);
-					int sky = mc.world.getLightFromNeighborsFor(EnumSkyBlock.SKY, pos1);
-					int block = mc.world.getLightFromNeighborsFor(EnumSkyBlock.BLOCK, pos1);
-					boolean surrounded = true;
-					for (EnumFacing facing : EnumFacing.VALUES) {
-						IBlockState offsetState = mc.world.getBlockState(pos1.offset(facing));
-						if (mc.world.isAirBlock(pos1.offset(facing))
-								|| !offsetState.isFullBlock()
-								|| !offsetState.isOpaqueCube()
-								|| !offsetState.isBlockNormalCube()
-								|| !offsetState.isNormalCube()
-								|| offsetState.isTranslucent()
-								|| offsetState.getMaterial().isLiquid()
-								|| !offsetState.getMaterial().isSolid()) {
-							surrounded = false;
-							break;
-						}
-					}
-					if (Math.max(sky, block) >= 15 || !surrounded) {
-						BlockRenderLayer layer = state.getBlock().getBlockLayer();
-						HashMultimap<IBlockState, BlockPos> multimap = blocks.get(layer);
-						if (multimap == null) {
-							multimap = HashMultimap.create();
-						}
-						multimap.put(state, pos1);
-						blocks.put(layer, multimap);
-					}
-				}
-			}
-		}
-
 		ChunkCache blockAccess = new CraneChunkCache(mc.world, pos.add(-width, -height - extraHeight, -width), pos.add(width, extraHeight, width), 0, pos, width);
+
+		cache(blockAccess, pos, width, height, extraHeight);
 
 		ComponentSprite compBackground = new ComponentSprite(spriteBackground, 0, 0, 490, 512);
 		getMainComponents().add(compBackground);
@@ -147,8 +109,26 @@ public class GuiCrane extends GuiBase {
 
 		int guiSideWidth = 70 * 2;
 		double tileSideSize = guiSideWidth / (Math.max(height, width) / 1.5) / 2.0;
-		sideView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 
+		sideView.BUS.hook(GuiComponent.ComponentTickEvent.class, (event) -> {
+			if (animSideRotation % 120 <= 0.1) cache(blockAccess, pos, width, height, extraHeight);
+
+			if (animSideRotation >= 360) animSideRotation = 0;
+
+			if (animSideTickPassed < animTickMax) {
+				if (animSideTickPassed <= animTickMax - 50) animSideTickPassed++;
+
+				float p = 0.03f;
+				float x = animSideTickPassed / animTickMax;
+				if (x < p) {
+					animSideRotation += (MathHelper.sin((float) (((x * Math.PI) / p) - Math.PI / 2)) + 1) / 2.0f;
+				} else {
+					animSideRotation += (MathHelper.sin((float) ((((x - p) * Math.PI) / (1 - p)) + Math.PI / 2)) + 1) / 2.0f;
+				}
+			}
+		});
+
+		sideView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 			if (tick >= 360 * 2) {
 				tick = 0;
 			} else {
@@ -164,8 +144,9 @@ public class GuiCrane extends GuiBase {
 			GlStateManager.matrixMode(GL11.GL_MODELVIEW);
 			GlStateManager.shadeModel(GL11.GL_SMOOTH);
 			GlStateManager.translate(150, 75 - Math.max(10, tileSideSize / 20), 500);
-			GlStateManager.rotate(horizontalAngle, -1, 0, 0);
-			GlStateManager.rotate((float) ((tick + event.getPartialTicks()) / 2), 0, 1, 0);
+			GlStateManager.rotate(horizontalAngle * (animSideTickPassed / animTickMax), -1, 0, 0);
+			GlStateManager.rotate(animSideRotation * 10, 0, 1, 0);
+			//GlStateManager.rotate((float) ((tick + event.getPartialTicks()) / 2), 0, 1, 0);
 			GlStateManager.translate(tileSideSize, -tileSideSize, tileSideSize);
 			GlStateManager.scale(tileSideSize, -tileSideSize, tileSideSize);
 
@@ -173,45 +154,14 @@ public class GuiCrane extends GuiBase {
 			for (BlockRenderLayer layer : blocks.keySet()) {
 				Tessellator tes = Tessellator.getInstance();
 				VertexBuffer buffer = tes.getBuffer();
-				BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
-
-				if (vboCaches.get(layer) == null) {
-					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-					buffer.setTranslation(-pos.getX(), -pos.getY(), -pos.getZ());
-
-					for (IBlockState state2 : blocks.get(layer).keySet()) {
-						for (BlockPos pos2 : blocks.get(layer).get(state2)) {
-							dispatcher.renderBlock(state2, pos2, blockAccess, buffer);
-						}
-					}
-
-					vboCaches.put(layer, ClientUtilMethods.createCacheArrayAndReset(buffer));
-				}
 
 				buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
 				buffer.addVertexData(vboCaches.get(layer));
-
 				tes.draw();
-
-				switch (layer) {
-					case SOLID: {
-						GlStateManager.enableAlpha();
-						break;
-					}
-					case CUTOUT_MIPPED: {
-						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
-						break;
-					}
-					case CUTOUT: {
-						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
-						break;
-					}
-					case TRANSLUCENT: {
-						break;
-					}
-				}
 			}
 
+			GlStateManager.disableAlpha();
+			GlStateManager.disableBlend();
 			GlStateManager.disableCull();
 			GlStateManager.popMatrix();
 		});
@@ -225,55 +175,47 @@ public class GuiCrane extends GuiBase {
 		getMainComponents().add(boxing);
 		ScissorMixin.INSTANCE.scissor(topView);
 
+		topView.BUS.hook(GuiComponent.ComponentTickEvent.class, (event) -> {
+			if (animTopRotation >= 180) {
+				animDone = true;
+				animTopRotation = 0;
+			}
+			if (!animDone) {
+				animTopTickPassed++;
+
+				float p = 0.03f;
+				float x = animTopTickPassed / animTickMax / 2;
+				if (x < p) {
+					animTopRotation += (MathHelper.sin((float) (((x * Math.PI) / p) - Math.PI / 2)) + 1) / 2.0f;
+				} else {
+					animTopRotation += (MathHelper.sin((float) ((((x - p) * Math.PI) / (1 - p)) + Math.PI / 2)) + 1) / 2.0f;
+				}
+			}
+		});
+
 		topView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
 			GlStateManager.pushMatrix();
 			GlStateManager.disableCull();
 			GlStateManager.matrixMode(GL11.GL_MODELVIEW);
 			GlStateManager.shadeModel(GL11.GL_SMOOTH);
 
-			GlStateManager.translate(133, 133, 1000);
+			GlStateManager.translate(133, 133, 800);
 			GlStateManager.scale(tileSize, -tileSize, tileSize);
 			GlStateManager.rotate(90, 1, 0, 0);
+			//GlStateManager.rotate(!animDone ? 90 * (animTopRotation / 180.0f) : 90, 1, 0, 0);
+			//GlStateManager.rotate(animTopRotation * 10, 0, 1, 0);
 			if (offset != null) GlStateManager.translate(-offset.getX() / tileSize, 0, -offset.getY() / tileSize);
 
 			mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 			for (BlockRenderLayer layer : blocks.keySet()) {
 				Tessellator tes = Tessellator.getInstance();
 				VertexBuffer buffer = tes.getBuffer();
-				BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
-				if (vboCaches.get(layer) == null) {
-					buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-
-					for (IBlockState state2 : blocks.get(layer).keySet())
-						for (BlockPos pos2 : blocks.get(layer).get(state2))
-							dispatcher.renderBlock(state2, pos2, blockAccess, buffer);
-
-					vboCaches.put(layer, ClientUtilMethods.createCacheArrayAndReset(buffer));
-				}
-
-				buffer.begin(7, DefaultVertexFormats.BLOCK);
+				buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
 				buffer.addVertexData(vboCaches.get(layer));
 
 				tes.draw();
 
-				switch (layer) {
-					case SOLID: {
-						GlStateManager.enableAlpha();
-						break;
-					}
-					case CUTOUT_MIPPED: {
-						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).setBlurMipmap(false, false);
-						break;
-					}
-					case CUTOUT: {
-						mc.getTextureManager().getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
-						break;
-					}
-					case TRANSLUCENT: {
-						break;
-					}
-				}
 			}
 
 			GlStateManager.popMatrix();
@@ -334,7 +276,7 @@ public class GuiCrane extends GuiBase {
 
 				if (selected != null) {
 					ItemStack stack = selected.getStack().getValue(selected);
-					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
+					IBlockState checkAgainstBlock = mc.world.getBlockState(PosUtils.getHighestBlock(mc.world, block));
 					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) {
 						return;
 					}
@@ -367,7 +309,7 @@ public class GuiCrane extends GuiBase {
 
 				if (selected != null) {
 					ItemStack stack = selected.getStack().getValue(selected);
-					IBlockState checkAgainstBlock = mc.world.getBlockState(getHighestBlock(mc.world, block));
+					IBlockState checkAgainstBlock = mc.world.getBlockState(PosUtils.getHighestBlock(mc.world, block));
 					if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) {
 						return;
 					}
@@ -427,6 +369,35 @@ public class GuiCrane extends GuiBase {
 			}
 			getMainComponents().add(inventory);
 		}
+
+		/*ComponentVoid blockEditor = new ComponentVoid(-100, 0, 256, 256);
+
+		blockEditor.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
+			int horizontalAngle = 45;
+			int verticalAngle = 45;
+			int blockSize = 64;
+
+			if (selected == null) return;
+			ItemStack stack = selected.getStack().getValue(selected);
+			if (stack == null) return;
+
+			GlStateManager.pushMatrix();
+			RenderHelper.enableGUIStandardItemLighting();
+			GlStateManager.enableRescaleNormal();
+
+			GlStateManager.scale(blockSize, blockSize, blockSize);
+			RenderItem itemRender = mc.getRenderItem();
+			itemRender.zLevel = 200.0f;
+			itemRender.renderItemAndEffectIntoGUI(stack, 100, 100);
+			itemRender.zLevel = 0.0f;
+
+			GlStateManager.disableRescaleNormal();
+			RenderHelper.disableStandardItemLighting();
+			GlStateManager.popMatrix();
+
+		});*/
+
+		//getMainComponents().add(blockEditor);
 	}
 
 	@Override
@@ -434,17 +405,29 @@ public class GuiCrane extends GuiBase {
 		return false;
 	}
 
-	public BlockPos getHighestBlock(World world, BlockPos pos) {
-		BlockPos.MutableBlockPos highest = new BlockPos.MutableBlockPos(pos.getX(), 255, pos.getZ());
-		IBlockState stateHighest = world.getBlockState(highest);
-		while (world.isAirBlock(highest) || stateHighest.getMaterial().isLiquid()) {
-			if (highest.getY() <= 0) {
-				break;
-			}
-			highest.move(EnumFacing.DOWN);
-			stateHighest = world.getBlockState(highest);
-		}
+	public void cache(IBlockAccess blockAccess, BlockPos pos, int width, int height, int extraHeight) {
+		blocks.clear();
+		AreaCacher cacher = new AreaCacher(mc.world, pos, width, height, extraHeight);
+		blocks.putAll(cacher.blocks);
+		vboCaches.clear();
 
-		return highest;
+		for (BlockRenderLayer layer : blocks.keySet()) {
+			Tessellator tes = Tessellator.getInstance();
+			VertexBuffer buffer = tes.getBuffer();
+			BlockRendererDispatcher dispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
+
+			if (vboCaches.get(layer) == null) {
+				buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
+				buffer.setTranslation(-pos.getX(), -pos.getY(), -pos.getZ());
+
+				for (IBlockState state2 : blocks.get(layer).keySet()) {
+					for (BlockPos pos2 : blocks.get(layer).get(state2)) {
+						dispatcher.renderBlock(state2, pos2, blockAccess, buffer);
+					}
+				}
+
+				vboCaches.put(layer, ClientUtilMethods.createCacheArrayAndReset(buffer));
+			}
+		}
 	}
 }
