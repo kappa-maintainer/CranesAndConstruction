@@ -7,8 +7,13 @@ buildscript {
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT"
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
     }
+}
+
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 apply plugin: "net.minecraftforge.gradle.forge"
@@ -35,9 +40,13 @@ minecraft {
 
 repositories {
     mavenCentral()
+   // maven {
+   //     url = "http://maven.bluexin.be/repository/snapshots/"
+   // }
 }
 
 dependencies {
+   // compile "com.teamwizardry.librarianlib:librarianlib-1.12:4.0-SNAPSHOT:deobf"
 }
 
 processResources {
@@ -56,5 +65,13 @@ processResources {
     // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude "mcmod.info"
+    }
+}
+
+idea{
+    module{
+        inheritOutputDirs = false
+        outputDir = compileJava.destinationDir
+        testOutputDir = compileTestJava.destinationDir
     }
 }

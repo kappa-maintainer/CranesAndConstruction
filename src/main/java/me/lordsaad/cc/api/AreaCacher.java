@@ -29,14 +29,14 @@ public class AreaCacher {
 	 * @param width  The width of the crane.
 	 * @param height The height of the crane.
 	 */
-	public AreaCacher(World world, BlockPos origin, int width, int height, int highestPoint) {
-		IBlockState[][][] tempStateCache = new IBlockState[width * 2][(height + highestPoint) + highestPoint][width * 2];
+	public AreaCacher(World world, BlockPos origin, int width, int height) {
+		IBlockState[][][] tempStateCache = new IBlockState[width * 2][height * 2][width * 2];
 
 		// FIRST ITERATION
 		// Save everything. Check surroundings in second iteration.
 		for (int i = -width; i < width; i++) {
 			for (int j = -width; j < width; j++) {
-				for (int k = -height - highestPoint; k < highestPoint; k++) {
+				for (int k = -height; k < height; k++) {
 					BlockPos pos = new BlockPos(origin.getX() + i, origin.getY() + k, origin.getZ() + j);
 
 					double dist = new Vec2d(pos.getX(), pos.getZ()).sub(new Vec2d(origin.getX(), origin.getZ())).length();
@@ -44,7 +44,7 @@ public class AreaCacher {
 
 					IBlockState state = world.getBlockState(pos);
 
-					BlockPos sub = pos.subtract(origin).add(width, height + highestPoint, width);
+					BlockPos sub = pos.subtract(origin).add(width, height, width);
 					tempStateCache[sub.getX()][sub.getY()][sub.getZ()] = state;
 				}
 			}
@@ -92,7 +92,7 @@ public class AreaCacher {
 					}
 
 					if (!surrounded) {
-						BlockPos pos = new BlockPos(i, j, k).subtract(new Vec3i(width, height + highestPoint, width)).add(origin);
+						BlockPos pos = new BlockPos(i, j, k).subtract(new Vec3i(width, height, width)).add(origin);
 						BlockRenderLayer layer = state.getBlock().getBlockLayer();
 						HashMultimap<IBlockState, BlockPos> multimap = blocks.get(layer);
 						if (multimap == null) multimap = HashMultimap.create();

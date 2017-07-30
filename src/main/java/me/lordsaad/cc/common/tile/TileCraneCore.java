@@ -1,7 +1,7 @@
 package me.lordsaad.cc.common.tile;
 
 import com.teamwizardry.librarianlib.features.autoregister.TileRegister;
-import com.teamwizardry.librarianlib.features.base.block.TileMod;
+import com.teamwizardry.librarianlib.features.base.block.tile.TileMod;
 import com.teamwizardry.librarianlib.features.math.Vec2d;
 import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodGetter;
@@ -37,40 +37,32 @@ import java.util.Deque;
 public class TileCraneCore extends TileMod implements ITickable {
 
 	public Deque<Pair<IBlockState, BlockPos>> queue = new ArrayDeque<>(256);
-
 	@Save
 	public float prevYaw = 0;
-
 	@Save
 	public float currentYaw = 0;
-
 	@Save
 	public float destYaw = 0;
-
 	@Nullable
 	@Save
 	public EnumFacing originalDirection;
-
 	@Save
+	@Deprecated
 	public BlockPos originalArmPos;
-
+	@Save
+	public int armHeight;
 	@Save
 	public boolean transitionArm = false, transitionArmToOrigin;
-
 	@Save
 	public int armLength = 0;
-
 	@Nullable
 	public Pair<IBlockState, BlockPos> nextPair = null;
-
 	@Save
 	public long worldTime;
-
 	// Handle
 	@Save
 	public BlockPos handleTo;
-
-	public IBlockState craneArmSample;
+	public IBlockState craneArmSample = ModBlocks.SCAFFOLDING.getDefaultState();
 
 	@SaveMethodGetter(saveName = "craneArmSample_saver")
 	public NBTTagCompound craneArmSampleGetter() {
@@ -129,8 +121,6 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	@Override
 	public void update() {
-		if (world.isRemote) return;
-
 		if (transitionArm) {
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
 			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
@@ -154,7 +144,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 					}
 				}
 				markDirty();
-				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+				//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 			}
 
 		} else if (transitionArmToOrigin) {
@@ -169,12 +159,12 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 				if (queue.isEmpty() && originalDirection != null) {
 					for (int i = 1; i < armLength; i++) {
-						BlockPos armPos = originalArmPos.offset(originalDirection, i);
-						world.setBlockState(armPos, ModBlocks.CRANE_BASE.getDefaultState(), 3);
+						BlockPos armPos = new BlockPos(pos.getX(), armHeight, pos.getY()).offset(originalDirection, i);
+						world.setBlockState(armPos, ModBlocks.SCAFFOLDING.getDefaultState());
 					}
 				}
 				markDirty();
-				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+				//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 			}
 		} else if (!queue.isEmpty()) {
 			nextPair = queue.pop();
@@ -182,35 +172,26 @@ public class TileCraneCore extends TileMod implements ITickable {
 			if (nextPair == null) return;
 
 			CraneManager manager = new CraneManager(world, pos);
+			if (manager.width == 0) return;
+			if (manager.height == 0) return;
 
-			if (!manager.arm.isEmpty()) {
-				if (craneArmSample == null)
-					craneArmSample = world.getBlockState(manager.arm.iterator().next());
-				if (armLength != manager.arm.size())
-					armLength = manager.arm.size();
-			}
-
-			if (originalArmPos == null && manager.armBlock == null) return;
-			else if (originalArmPos == null) originalArmPos = manager.armBlock;
-
-			if (originalDirection == null && manager.direction == null) return;
-			else if (originalDirection == null) originalDirection = manager.direction;
-
-			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(originalDirection)));
-			Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
-			Vec2d from = new Vec2d(from3d.xCoord, from3d.zCoord).normalize();
-			Vec2d to = new Vec2d(to3d.xCoord, to3d.zCoord).normalize();
-			double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
-			double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
-			double angle = Math.toDegrees(angle1 - angle2);
-			destYaw = (float) angle;
+			transitionArm = true;
+			armLength = manager.width;
+			armHeight = manager.armBlock.getY();
+			originalDirection = manager.direction;
+			worldTime = world.getTotalWorldTime();
 
 			BlockPos nextPos = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
 			handleTo = pos.offset(originalDirection, (int) pos.getDistance(nextPos.getX(), nextPos.getY(), nextPos.getZ()));
 
-			transitionArm = true;
-
-			worldTime = world.getTotalWorldTime();
+			Vec3d from3d = new Vec3d(pos).subtract(new Vec3d(pos.offset(originalDirection)));
+			Vec3d to3d = new Vec3d(pos).subtract(new Vec3d(nextPair.getSecond()));
+			Vec2d from = new Vec2d(from3d.x, from3d.z).normalize();
+			Vec2d to = new Vec2d(to3d.x, to3d.z).normalize();
+			double angle1 = Math.acos(from.getX()) * (from.getY() < 0 ? -1 : 1);
+			double angle2 = Math.acos(to.getX()) * (to.getY() < 0 ? -1 : 1);
+			double angle = Math.toDegrees(angle1 - angle2);
+			destYaw = (float) angle;
 
 			if (!manager.arm.isEmpty())
 				for (BlockPos blocks : manager.arm)
@@ -218,7 +199,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 						world.setBlockToAir(blocks);
 
 			markDirty();
-			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+			//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		}
 	}
 

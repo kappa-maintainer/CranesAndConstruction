@@ -48,7 +48,7 @@ public class CraneManager {
 			BlockPos shift = pos;
 			IBlockState shiftState = world.getBlockState(shift);
 			int count = 0;
-			while ((shiftState.getBlock() == ModBlocks.CRANE_CORE || shiftState.getBlock() == ModBlocks.CRANE_BASE)) {
+			while ((shiftState.getBlock() == ModBlocks.CRANE_SEAT || shiftState.getBlock() == ModBlocks.SCAFFOLDING)) {
 				if (isBlockAtCraneBottom(world, shift)) return true;
 				count++;
 				shift = shift.down();
@@ -69,12 +69,11 @@ public class CraneManager {
 		IBlockState stateUp = world.getBlockState(up);
 		IBlockState state = world.getBlockState(pos);
 
-		return (state.getBlock() == ModBlocks.CRANE_CORE
-				|| state.getBlock() == ModBlocks.CRANE_BASE)
-				&& (stateDown.getBlock().isBlockSolid(world, down, null)
-				&& stateDown.isFullBlock())
-				&& (stateUp.getBlock() == ModBlocks.CRANE_BASE
-				|| stateUp.getBlock() == ModBlocks.CRANE_CORE
+		return (state.getBlock() == ModBlocks.CRANE_SEAT
+				|| state.getBlock() == ModBlocks.SCAFFOLDING)
+				&& stateDown.isFullBlock()
+				&& (stateUp.getBlock() == ModBlocks.SCAFFOLDING
+				|| stateUp.getBlock() == ModBlocks.CRANE_SEAT
 				|| stateUp.getBlock() == Blocks.AIR);
 	}
 
@@ -193,7 +192,7 @@ public class CraneManager {
 		for (Pair<IBlockState, BlockPos> pair : structure)
 			world.setBlockState(pair.getSecond().up(), pair.getFirst(), 3);
 
-		world.setBlockState(anchor.up(), ModBlocks.CRANE_BASE.getDefaultState(), 3);
+		world.setBlockState(anchor.up(), ModBlocks.SCAFFOLDING.getDefaultState(), 3);
 
 		refresh(blockInCrane);
 	}
@@ -211,7 +210,7 @@ public class CraneManager {
 
 			if (!world.isBlockLoaded(posAdj)) continue;
 			if (allCraneBlocks.contains(posAdj)) continue;
-			if (stateAdj.getBlock() != ModBlocks.CRANE_CORE && stateAdj.getBlock() != ModBlocks.CRANE_BASE) continue;
+			if (stateAdj.getBlock() != ModBlocks.CRANE_SEAT && stateAdj.getBlock() != ModBlocks.SCAFFOLDING) continue;
 
 			getAllCrane(posAdj);
 		}
@@ -225,11 +224,11 @@ public class CraneManager {
 		IBlockState state = world.getBlockState(bottomBlock);
 		BlockPos offset = bottomBlock;
 		int count = 0;
-		while (count < 50 && (state.getBlock() == ModBlocks.CRANE_CORE || state.getBlock() == ModBlocks.CRANE_BASE)) {
+		while (count < 50 && (state.getBlock() == ModBlocks.CRANE_SEAT || state.getBlock() == ModBlocks.SCAFFOLDING)) {
 			count++;
 			BlockPos pos = bottomBlock.offset(EnumFacing.UP, count);
 			IBlockState shiftedState = world.getBlockState(pos);
-			if (shiftedState.getBlock() != ModBlocks.CRANE_CORE && shiftedState.getBlock() != ModBlocks.CRANE_BASE)
+			if (shiftedState.getBlock() != ModBlocks.CRANE_SEAT && shiftedState.getBlock() != ModBlocks.SCAFFOLDING)
 				break;
 
 			offset = pos;
@@ -260,7 +259,7 @@ public class CraneManager {
 				if (!world.isBlockLoaded(posAdj)) continue;
 
 				IBlockState stateAdj = world.getBlockState(posAdj);
-				if (stateAdj.getBlock() != ModBlocks.CRANE_BASE) continue;
+				if (stateAdj.getBlock() != ModBlocks.SCAFFOLDING) continue;
 
 				return new Pair<>(pos, facing);
 			}
@@ -274,7 +273,7 @@ public class CraneManager {
 		IBlockState state = world.getBlockState(armBlock);
 		BlockPos offset = armBlock;
 		int count = 0;
-		while (count < 50 && (state.getBlock() == ModBlocks.CRANE_CORE || state.getBlock() == ModBlocks.CRANE_BASE) && world.isBlockLoaded(offset)) {
+		while (count < 50 && (state.getBlock() == ModBlocks.CRANE_SEAT || state.getBlock() == ModBlocks.SCAFFOLDING) && world.isBlockLoaded(offset)) {
 			count++;
 			arm.add(offset);
 			offset = armBlock.offset(direction, count);
@@ -290,7 +289,7 @@ public class CraneManager {
 		for (BlockPos pos : pole) {
 			if (!world.isBlockLoaded(pos)) continue;
 			IBlockState state = world.getBlockState(pos);
-			if (state.getBlock() == ModBlocks.CRANE_CORE) seats.add(pos);
+			if (state.getBlock() == ModBlocks.CRANE_SEAT) seats.add(pos);
 		}
 
 		if (seats.isEmpty() || seats.size() <= 1 || seats.size() > 2) return null;

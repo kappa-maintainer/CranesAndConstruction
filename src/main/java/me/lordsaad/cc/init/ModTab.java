@@ -17,12 +17,12 @@ public class ModTab extends ModCreativeTab {
 
 	@Override
 	public ItemStack getTabIconItem() {
-		return new ItemStack(ModBlocks.CRANE_CORE);
+		return new ItemStack(ModBlocks.CRANE_SEAT);
 	}
 
 	@Nonnull
 	@Override
 	public ItemStack getIconStack() {
-		return new ItemStack(ModBlocks.CRANE_CORE);
+		return new ItemStack(ModBlocks.CRANE_SEAT);
 	}
 }

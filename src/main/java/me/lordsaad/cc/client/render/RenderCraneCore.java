@@ -22,28 +22,28 @@ public class RenderCraneCore extends TileEntitySpecialRenderer<TileCraneCore> {
 	private IBakedModel modelCraneBase = null, modelCraneHandle;
 
 	@Override
-	public void renderTileEntityAt(TileCraneCore te, double x, double y, double z, float partialTicks, int destroyStage) {
-		super.renderTileEntityAt(te, x, y, z, partialTicks, destroyStage);
+	public void render(TileCraneCore te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {
+		super.render(te, x, y, z, partialTicks, destroyStage, alpha);
 
 		IModel model = null;
 		if (modelCraneBase == null) {
 			try {
-				model = ModelLoaderRegistry.getModel(new ResourceLocation(CCMain.MOD_ID, "block/crane_base"));
+				model = ModelLoaderRegistry.getModel(new ResourceLocation(CCMain.MOD_ID, "block/scaffolding"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			modelCraneBase = model.bake(model.getDefaultState(), DefaultVertexFormats.ITEM,
 					location -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(location.toString()));
 		}
-		if (modelCraneHandle == null) {
-			try {
-				model = ModelLoaderRegistry.getModel(new ResourceLocation(CCMain.MOD_ID, "block/crane_handle"));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			modelCraneHandle = model.bake(model.getDefaultState(), DefaultVertexFormats.ITEM,
-					location -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(location.toString()));
-		}
+		//if (modelCraneHandle == null) {
+		//	try {
+		//		model = ModelLoaderRegistry.getModel(new ResourceLocation(CCMain.MOD_ID, "block/crane_handle"));
+		//	} catch (Exception e) {
+		//		e.printStackTrace();
+		//	}
+		//	modelCraneHandle = model.bake(model.getDefaultState(), DefaultVertexFormats.ITEM,
+		//			location -> Minecraft.getMinecraft().getTextureMapBlocks().getAtlasSprite(location.toString()));
+		//}
 
 		double subtractedMillis = (te.getWorld().getTotalWorldTime() - te.worldTime);
 		double transitionTimeMax = Math.max(10, Math.min(Math.abs((te.prevYaw - te.destYaw) / 2.0), 20));

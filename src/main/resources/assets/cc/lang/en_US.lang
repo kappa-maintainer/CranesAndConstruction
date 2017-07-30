@@ -1,5 +1,5 @@
-tile.cc:crane_base.name=Crane Base
-tile.cc:crane_core.name=Crane Core
+tile.cc:scaffolding.name=Scaffolding
+tile.cc:crane_seat.name=Crane Seat
 
 item_group.cc.cranes & _construction=Cranes & Construction
 item_group.cc=Cranes & Construction

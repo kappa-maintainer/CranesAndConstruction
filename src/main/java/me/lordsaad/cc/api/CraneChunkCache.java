@@ -1,6 +1,5 @@
 package me.lordsaad.cc.api;
 
-import com.teamwizardry.librarianlib.features.math.Vec2d;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -22,9 +21,8 @@ public class CraneChunkCache extends ChunkCache {
 
 	@Override
 	public IBlockState getBlockState(BlockPos pos) {
-		double dist = new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5).sub(new Vec2d(origin.getX(), origin.getZ()).add(0.5, 0.5)).length();
-		if (dist <= radius)
-			return super.getBlockState(pos);
+		double dist = pos.getDistance(origin.getX(), origin.getY(), origin.getZ());
+		if (dist < radius) return super.getBlockState(pos);
 		return Blocks.AIR.getDefaultState();
 	}
 }

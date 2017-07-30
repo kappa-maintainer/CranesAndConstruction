@@ -1,0 +1,25 @@
+{
+	"variants": {
+		"facing=down": {
+			"model": "cc:crane_seat"
+		},
+		"facing=up": {
+			"model": "cc:crane_seat"
+		},
+		"facing=north": {
+			"model": "cc:crane_seat"
+		},
+		"facing=south": {
+			"model": "cc:crane_seat",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "cc:crane_seat",
+			"y": 270
+		},
+		"facing=east": {
+			"model": "cc:crane_seat",
+			"y": 90
+		}
+	}
+}
