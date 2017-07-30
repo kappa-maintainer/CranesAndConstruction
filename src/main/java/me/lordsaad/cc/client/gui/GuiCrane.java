@@ -240,15 +240,15 @@ public class GuiCrane extends GuiBase {
 
 				if (!event.getComponent().getMouseOver()) return;
 
-				int gridX = (event.getMousePos().getXi() / tileSize * tileSize) - (width / 2);
-				int gridY = (event.getMousePos().getYi() / tileSize * tileSize) - (width / 2);
+				int gridX = (event.getMousePos().getXi() / tileSize) - (width / 2);
+				int gridY = (event.getMousePos().getYi() / tileSize) - (width / 2);
 
 				Minecraft.getMinecraft().player.sendChatMessage(tileSize + " -- " + gridX + " - " + gridY);
 
 				GlStateManager.pushMatrix();
 				GlStateManager.translate(0, 0, 1000);
 				tileSelector2.getTex().bind();
-				tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX, gridY, tileSize, tileSize);
+				tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX * tileSize, gridY * tileSize, tileSize, tileSize);
 				GlStateManager.popMatrix();
 			});
 
