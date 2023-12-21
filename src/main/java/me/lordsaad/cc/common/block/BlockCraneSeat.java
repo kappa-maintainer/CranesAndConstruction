@@ -49,7 +49,7 @@ public class BlockCraneSeat extends BlockModContainer implements ILadder {
 
 	@Override
 	public IBlockState getStateFromMeta(int meta) {
-		return getDefaultState().withProperty(FACING, EnumFacing.getFront(meta & 7));
+		return getDefaultState().withProperty(FACING, EnumFacing.byIndex(meta & 7));
 	}
 
 	@Override
@@ -120,7 +120,7 @@ public class BlockCraneSeat extends BlockModContainer implements ILadder {
 	@Override
 	@SideOnly(Side.CLIENT)
 	@Nonnull
-	public BlockRenderLayer getBlockLayer() {
+	public BlockRenderLayer getRenderLayer() {
 		return BlockRenderLayer.CUTOUT;
 	}
 

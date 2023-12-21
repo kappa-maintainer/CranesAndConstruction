@@ -7,6 +7,7 @@ import com.teamwizardry.librarianlib.features.saving.Save;
 import kotlin.Pair;
 import me.lordsaad.cc.common.tile.TileCraneCore;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -15,6 +16,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.util.UUID;
@@ -55,12 +57,12 @@ public class PacketSyncBlockBuild extends PacketBase {
 		//if (horizontal.isEmpty()) return;
 		//else width = horizontal.size() - 1;
 //
-		//Minecraft.getMinecraft().player.sendChatMessage(width + " - " + ((int)destination.getDistance(crane.getX(), crane.getY(), crane.getZ())));
-		double dist = new Vec2d(destination.getX(), destination.getZ()).add(0.5, 0.5).sub(new Vec2d(crane.getX(), crane.getZ()).add(0.5, 0.5)).length();
-
-		if (dist > width) return;
-
+		Minecraft.getMinecraft().player.sendChatMessage(width + " - " + ((int)destination.getDistance(crane.getX(), crane.getY(), crane.getZ())));
 		if (!world.isBlockLoaded(destination)) return;
+		//double dist = new Vec2d(destination.getX(), destination.getZ()).add(0.5, 0.5).sub(new Vec2d(crane.getX(), crane.getZ()).add(0.5, 0.5)).length();
+		int x = destination.getX() - crane.getX();
+		int y = destination.getY() - crane.getY();
+		if (x * x + y * y > width * width) return;
 
 		TileCraneCore core = (TileCraneCore) world.getTileEntity(crane);
 		if (core == null) return;
@@ -78,9 +80,10 @@ public class PacketSyncBlockBuild extends PacketBase {
 
 		EnumActionResult result = itemBlock.onItemUse(player, world, temp, EnumHand.MAIN_HAND, EnumFacing.UP, 0f, 0f, 0f);
 		if (result == EnumActionResult.PASS) return;
-
+		FMLLog.log.info(result);
 		if (world.isAirBlock(temp)) return;
 		IBlockState state = world.getBlockState(temp);
+		FMLLog.log.info(state);
 		world.setBlockToAir(temp);
 
 		if (!messageContext.getServerHandler().player.isCreative())

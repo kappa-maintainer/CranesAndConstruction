@@ -81,7 +81,7 @@ public class BlockScaffolding extends BlockMod implements ILadder {
 	@Override
 	@SideOnly(Side.CLIENT)
 	@Nonnull
-	public BlockRenderLayer getBlockLayer() {
+	public BlockRenderLayer getRenderLayer() {
 		return BlockRenderLayer.CUTOUT;
 	}
 

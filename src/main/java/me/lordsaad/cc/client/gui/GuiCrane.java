@@ -4,7 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.teamwizardry.librarianlib.core.client.ClientTickHandler;
 import com.teamwizardry.librarianlib.features.gui.EnumMouseButton;
 import com.teamwizardry.librarianlib.features.gui.GuiBase;
-import com.teamwizardry.librarianlib.features.gui.GuiComponent;
+import com.teamwizardry.librarianlib.features.gui.component.GuiComponentEvents;
 import com.teamwizardry.librarianlib.features.gui.components.*;
 import com.teamwizardry.librarianlib.features.gui.mixin.ScissorMixin;
 import com.teamwizardry.librarianlib.features.gui.mixin.gl.GlMixin;
@@ -37,6 +37,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
+import net.minecraftforge.fml.common.FMLLog;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
@@ -65,11 +66,11 @@ public class GuiCrane extends GuiBase {
 	private EnumMap<BlockRenderLayer, HashMultimap<IBlockState, BlockPos>> blocks = new EnumMap<>(BlockRenderLayer.class);
 	private HashSet<BlockPos> tempPosCache = new HashSet<>();
 	private EnumMap<BlockRenderLayer, int[]> vboCaches = new EnumMap<>(BlockRenderLayer.class);
-
+	private int tileSize = 16;
 	private Vec2d offset = Vec2d.ZERO, from = Vec2d.ZERO;
 
 	private int prevX = 0, prevY = 0;
-	private int tileSize = 16;
+
 	@Deprecated
 	private int cacheTick = 0;
 	private double tick = 0;
@@ -121,7 +122,7 @@ public class GuiCrane extends GuiBase {
 			double guiSideWidth = 150 / 1.3;
 			double tileSideSize = guiSideWidth / width;
 
-			sideView.BUS.hook(GuiComponent.ComponentTickEvent.class, (event) -> {
+			sideView.BUS.hook(GuiComponentEvents.ComponentTickEvent.class, (event) -> {
 				//if (animSideRotation % 120 <= 0.1) cache(blockAccess, pos, width, height, extraHeight);
 
 				if (animSideRotation >= 360) animSideRotation = 0;
@@ -140,7 +141,7 @@ public class GuiCrane extends GuiBase {
 				}
 			});
 
-			sideView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
+			sideView.BUS.hook(GuiComponentEvents.PostDrawEvent.class, (event) -> {
 				if (tick >= 360) {
 					tick = 0;
 				} else {
@@ -191,8 +192,8 @@ public class GuiCrane extends GuiBase {
 
 			topView.getColor().setValue(Color.BLACK);
 			ScissorMixin.INSTANCE.scissor(topView);
-
-			topView.BUS.hook(GuiComponent.ComponentTickEvent.class, (event) -> {
+			topView.setZIndex(2);
+			topView.BUS.hook(GuiComponentEvents.ComponentTickEvent.class, (event) -> {
 				if (animTopRotation >= 180) {
 					animDone = true;
 					animTopRotation = 0;
@@ -210,7 +211,7 @@ public class GuiCrane extends GuiBase {
 				}
 			});
 
-			topView.BUS.hook(GuiComponent.PostDrawEvent.class, (event) -> {
+			topView.BUS.hook(GuiComponentEvents.PostDrawEvent.class, (event) -> {
 				GlStateManager.pushMatrix();
 				GlStateManager.disableCull();
 				GlStateManager.matrixMode(GL11.GL_MODELVIEW);
@@ -238,24 +239,24 @@ public class GuiCrane extends GuiBase {
 
 				GlStateManager.popMatrix();
 
-				if (!event.getComponent().getMouseOver()) return;
+				if (!event.component.getMouseOver()) return;
 
-				int gridX = (event.getMousePos().getXi() / tileSize) - (width / 2);
-				int gridY = (event.getMousePos().getYi() / tileSize) - (width / 2);
+				float gridX = (float) ((Math.floor(((event.getMousePos().getX() - ((0.5 * tileSize) % tileSize - offset.getX() % tileSize) - 150)/ tileSize)) + 0.5) * tileSize + 150 - offset.getX() % tileSize);
+				float gridY = (float) ((Math.floor(((event.getMousePos().getY() - ((0.5 * tileSize) % tileSize - offset.getY() % tileSize) - 150)/ tileSize)) + 0.5) * tileSize + 150 - offset.getY() % tileSize);
 
-				Minecraft.getMinecraft().player.sendChatMessage(tileSize + " -- " + gridX + " - " + gridY);
+				//Minecraft.getMinecraft().player.sendChatMessage(tileSize + " -- " + gridX + " - " + gridY);
 
 				GlStateManager.pushMatrix();
 				GlStateManager.translate(0, 0, 1000);
 				tileSelector2.getTex().bind();
-				tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX * tileSize, gridY * tileSize, tileSize, tileSize);
+				tileSelector2.draw((int) ClientTickHandler.getPartialTicks(), gridX, gridY, tileSize, tileSize);
 				GlStateManager.popMatrix();
 			});
 
-			topView.BUS.hook(GuiComponent.MouseWheelEvent.class, (event) -> {
-				if (!event.getComponent().getMouseOver()) return;
+			topView.BUS.hook(GuiComponentEvents.MouseWheelEvent.class, (event) -> {
+				if (!event.component.getMouseOver()) return;
 
-				if (event.getDirection() == GuiComponent.MouseWheelDirection.UP) {
+				if (event.getDirection() == GuiComponentEvents.MouseWheelDirection.UP) {
 					if (tileSize < 50) {
 						tileSize += 2;
 					}
@@ -266,8 +267,8 @@ public class GuiCrane extends GuiBase {
 				}
 			});
 
-			topView.BUS.hook(GuiComponent.MouseDragEvent.class, (event) -> {
-				if (!event.getComponent().getMouseOver()) return;
+			topView.BUS.hook(GuiComponentEvents.MouseDragEvent.class, (event) -> {
+				if (!event.component.getMouseOver()) return;
 
 				if (event.getButton() != EnumMouseButton.MIDDLE) {
 					int x = (int) ((event.getMousePos().getXi() / tileSize) + (width / 2.0) + offset.getX());
@@ -301,35 +302,32 @@ public class GuiCrane extends GuiBase {
 						PacketHandler.NETWORK.sendToServer(new PacketSyncBlockBuild(pos, mc.player.inventory.getSlotFor(stack), block, width));
 					}
 				} else {
-					//if (from != null) {
-					//	Vec2d diff = new Vec2d(from.getXi(), from.getYi()).sub(new Vec2d(event.getMousePos().getXi(), event.getMousePos().getYi()));
-					//	if ((int) diff.length() % tileSize == 0) {
-					//		diff = diff.normalize();
-					//		offset = new Vec2d(diff.getXi() * tileSize, diff.getYi() * tileSize);
-					//	}
-					//}
+					if (from != null) {
+						Vec2d diff = new Vec2d(from.getXi(), from.getYi()).sub(new Vec2d(event.getMousePos().getXi(), event.getMousePos().getYi()));
+						offset = new Vec2d(diff.getXi(), diff.getYi());
+					}
 				}
 			});
 
-			topView.BUS.hook(GuiComponent.MouseDownEvent.class, (event) -> {
-				if (!event.getComponent().getMouseOver()) {
+			topView.BUS.hook(GuiComponentEvents.MouseDownEvent.class, (event) -> {
+				if (!event.component.getMouseOver()) {
 					return;
 				}
 				if (event.getButton() != EnumMouseButton.MIDDLE) {
 
-					if (!event.getComponent().getMouseOver()) {
-						return;
-					}
-					int x = (int) ((event.getMousePos().getXi() / tileSize) + (width / 2.0) + offset.getX());
-					int y = (int) ((event.getMousePos().getYi() / tileSize) + (width / 2.0) + offset.getY());
+					int x = (int) Math.round ((event.getMousePos().getXi() + offset.getX() - 150) / tileSize );
+					int y = (int) Math.round ((event.getMousePos().getYi() + offset.getY() - 150) / tileSize );
+					if (x == 0 && y == 0) return;
 					BlockPos block = baseBlock.add(new BlockPos(x, 0, y));
 
-					double dist = new Vec2d(block.getX(), block.getZ()).add(0.5, 0.5).sub(new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5)).length();
-
-					if (dist > width) return;
-
+					//double dist = new Vec2d(block.getX(), block.getZ()).add(0.5, 0.5).sub(new Vec2d(pos.getX(), pos.getZ()).add(0.5, 0.5)).length();
+					int dist = x * x + y * y;
+					if (dist > width * width) return;
+					CCMain.LOGGER.info(x);
+					CCMain.LOGGER.info(y);
 					if (selected != null) {
 						ItemStack stack = selected.getStack().getValue(selected);
+						CCMain.LOGGER.info(stack);
 						IBlockState checkAgainstBlock = mc.world.getBlockState(PosUtils.getHighestBlock(mc.world, block));
 						if (!stack.canPlaceOn(checkAgainstBlock.getBlock()) && !mc.player.capabilities.allowEdit) {
 							return;
@@ -359,8 +357,8 @@ public class GuiCrane extends GuiBase {
 
 			final int size = itemBlocks.size();
 			for (int i = 0; i < Math.ceil(size / 9.0); i++) {
-				ComponentList inventory = new ComponentList(16 + (i * 36), 16);
-				inventory.setChildScale(2);
+				ComponentList inventory = new ComponentList(16 + (i * 36), 16, 18);
+				inventory.geometry.getTransform().setScale(2);
 
 				for (int j = 0; j < 9; j++) {
 					if (itemBlocks.isEmpty()) {
@@ -368,22 +366,20 @@ public class GuiCrane extends GuiBase {
 					}
 					ItemStack stack = itemBlocks.pop();
 					ComponentStack compStack = new ComponentStack(0, 0);
-					compStack.setMarginBottom(2);
+					compStack.getPos().add(0, 2);//.setMarginBottom(2);
 					compStack.getStack().setValue(stack);
 
 					final int finalI = i, finalJ = j;
-					compStack.BUS.hook(GuiComponent.MouseClickEvent.class, (event) -> {
-						if (!event.getComponent().getMouseOver()) {
-							return;
-						}
+					compStack.BUS.hook(GuiComponentEvents.MouseClickAnyEvent.class, (event) -> {
+						if (!compStack.geometry.getMouseOver()) return;
 						selected = compStack;
 						selectionRect.setVisible(true);
 						selectionRect.setPos(new Vec2d(16 + finalI * 36, 16 + finalJ * 36));
 						GlMixin.INSTANCE.transform(selectionRect).setValue(new Vec3d(0, 0, 100));
 					});
 
-					compStack.BUS.hook(GuiComponent.MouseOverEvent.class, (event) -> {
-						if (!event.getComponent().getMouseOver()) {
+					compStack.BUS.hook(GuiComponentEvents.MouseOverEvent.class, (event) -> {
+						if (!event.component.getMouseOver()) {
 							return;
 						}
 						hoverRect.setVisible(true);

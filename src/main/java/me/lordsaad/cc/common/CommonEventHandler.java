@@ -38,7 +38,7 @@ public class CommonEventHandler {
 		double ladderClimbSpeed = entity.isSneaking() ? 0.0 : 0.15;
 		double ladderFallSpeed = entity.isSneaking() ? 0.0 : 0.3;
 
-		if (entity.isCollidedHorizontally) {
+		if (entity.collidedHorizontally) {
 			if (entity.motionY < ladderClimbSpeed) {
 				entity.motionY = ladderClimbSpeed;
 			}

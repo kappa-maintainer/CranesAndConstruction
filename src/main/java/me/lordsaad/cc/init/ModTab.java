@@ -16,7 +16,7 @@ public class ModTab extends ModCreativeTab {
 	}
 
 	@Override
-	public ItemStack getTabIconItem() {
+	public ItemStack createIcon() {
 		return new ItemStack(ModBlocks.CRANE_SEAT);
 	}
 

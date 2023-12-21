@@ -49,7 +49,7 @@ public class PacketShowCraneParticles extends PacketBase {
 				glitter.setColor(Color.GREEN);
 				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).addVector(0.5, 0.5, 0.5)), 1);
+				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).add(0.5, 0.5, 0.5)), 1);
 			}
 
 		if (!manager.arm.isEmpty()) {
@@ -60,7 +60,7 @@ public class PacketShowCraneParticles extends PacketBase {
 				glitter.setColor(Color.BLUE);
 				glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 				glitter.setScale(2);
-				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).addVector(0.5, 0.5, 0.5)), 1);
+				ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(pos).add(0.5, 0.5, 0.5)), 1);
 			}
 		}
 
@@ -71,7 +71,7 @@ public class PacketShowCraneParticles extends PacketBase {
 			glitter.setColor(Color.BLACK);
 			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 			glitter.setScale(5);
-			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.armBlock).addVector(0.5, 0.5, 0.5)), 1);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.armBlock).add(0.5, 0.5, 0.5)), 1);
 		}
 
 		if (manager.highestBlock != null) {
@@ -81,7 +81,7 @@ public class PacketShowCraneParticles extends PacketBase {
 			glitter.setColor(Color.BLACK);
 			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 			glitter.setScale(5);
-			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.highestBlock).addVector(0.5, 0.5, 0.5)), 1);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.highestBlock).add(0.5, 0.5, 0.5)), 1);
 		}
 
 		if (manager.bottomBlock != null) {
@@ -91,7 +91,7 @@ public class PacketShowCraneParticles extends PacketBase {
 			glitter.setColor(Color.BLACK);
 			glitter.setAlphaFunction(new InterpFadeInOut(1f, 1f));
 			glitter.setScale(5);
-			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.bottomBlock).addVector(0.5, 0.5, 0.5)), 1);
+			ParticleSpawner.spawn(glitter, world, new StaticInterp<>(new Vec3d(manager.bottomBlock).add(0.5, 0.5, 0.5)), 1);
 		}
 	}
 }

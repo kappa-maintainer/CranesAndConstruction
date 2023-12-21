@@ -93,7 +93,7 @@ public class AreaCacher {
 
 					if (!surrounded) {
 						BlockPos pos = new BlockPos(i, j, k).subtract(new Vec3i(width, height, width)).add(origin);
-						BlockRenderLayer layer = state.getBlock().getBlockLayer();
+						BlockRenderLayer layer = state.getBlock().getRenderLayer();
 						HashMultimap<IBlockState, BlockPos> multimap = blocks.get(layer);
 						if (multimap == null) multimap = HashMultimap.create();
 						multimap.put(state, pos);

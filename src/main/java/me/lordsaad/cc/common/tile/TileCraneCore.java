@@ -7,6 +7,7 @@ import com.teamwizardry.librarianlib.features.saving.Save;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodGetter;
 import com.teamwizardry.librarianlib.features.saving.SaveMethodSetter;
 import kotlin.Pair;
+import me.lordsaad.cc.CCMain;
 import me.lordsaad.cc.api.CraneManager;
 import me.lordsaad.cc.api.PosUtils;
 import me.lordsaad.cc.init.ModBlocks;
@@ -121,14 +122,20 @@ public class TileCraneCore extends TileMod implements ITickable {
 
 	@Override
 	public void update() {
+		if (!queue.isEmpty())CCMain.LOGGER.info("QUEUE NOT EMPTY1: " + queue.peek());
+		if (transitionArm || transitionArmToOrigin) CCMain.LOGGER.info("trans: " + transitionArm +", transo: " + transitionArmToOrigin);
 		if (transitionArm) {
+			if (Float.isNaN(destYaw)) destYaw = 0;
 			double transitionTimeMax = Math.max(10, Math.min(Math.abs((prevYaw - destYaw) / 2.0), 20));
-			double worldTimeTransition = (world.getTotalWorldTime() - worldTime);
+
+			int worldTimeTransition = (int) (world.getTotalWorldTime() - worldTime);
+			CCMain.LOGGER.info(worldTimeTransition + " : " + transitionTimeMax);
+			CCMain.LOGGER.info(prevYaw + ":" + destYaw);
 
 			if (worldTimeTransition >= transitionTimeMax) {
 				currentYaw = destYaw;
 				transitionArm = false;
-
+				CCMain.LOGGER.info("transition complete");
 				if (nextPair != null) {
 					EntityFallingBlock block = new EntityFallingBlock(world, nextPair.getSecond().getX() + 0.5, nextPair.getSecond().getY(), nextPair.getSecond().getZ() + 0.5, nextPair.getFirst());
 					block.fallTime = 2;
@@ -144,7 +151,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 					}
 				}
 				markDirty();
-				//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), Constants.BlockFlags.DEFAULT);
 			}
 
 		} else if (transitionArmToOrigin) {
@@ -164,11 +171,11 @@ public class TileCraneCore extends TileMod implements ITickable {
 					}
 				}
 				markDirty();
-				//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), Constants.BlockFlags.DEFAULT);
 			}
 		} else if (!queue.isEmpty()) {
 			nextPair = queue.pop();
-
+			CCMain.LOGGER.info("QUEUE NOT EMPTY2: " + nextPair);
 			if (nextPair == null) return;
 
 			CraneManager manager = new CraneManager(world, pos);
@@ -179,6 +186,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 			armLength = manager.width;
 			armHeight = manager.armBlock.getY();
 			originalDirection = manager.direction;
+			if (originalArmPos == null) originalArmPos = new BlockPos(pos.getX(), armHeight, pos.getY()).offset(originalDirection, 0);
 			worldTime = world.getTotalWorldTime();
 
 			BlockPos nextPos = new BlockPos(nextPair.getSecond().getX(), originalArmPos.getY() - 1, nextPair.getSecond().getZ());
@@ -199,7 +207,7 @@ public class TileCraneCore extends TileMod implements ITickable {
 						world.setBlockToAir(blocks);
 
 			markDirty();
-			//world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 		}
 	}
 
